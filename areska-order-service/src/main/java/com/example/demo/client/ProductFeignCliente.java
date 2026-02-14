@@ -1,0 +1,44 @@
+package com.example.demo.client;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import com.example.demo.shared.Api.ApiSuccess;
+
+
+@FeignClient(name = "ARESKA-PRODUCT-SERVICE")
+public interface ProductFeignCliente {
+
+    @GetMapping("/products/{id}")
+    ApiSuccess<ProductResponse> getProductById(@PathVariable Integer id);
+
+    @PutMapping("/products/{id}/stock")
+    ApiSuccess<Void> updateProductStock(@PathVariable Integer id, @RequestBody StockUpdateRequest request);
+
+    record ProductResponse(
+            Integer id,
+            String name,
+            String description,
+            java.math.BigDecimal price,
+            java.math.BigDecimal originalPrice,
+            String mainImage,
+            Integer stock,
+            String badge,
+            ProductCategory category,
+            java.time.LocalDateTime createdAt,
+            java.time.LocalDateTime updatedAt) {
+
+        public record ProductCategory(
+                Integer id,
+                String name) {
+        }
+    }
+
+    record StockUpdateRequest(
+            Integer stock) {
+    }
+}
+
