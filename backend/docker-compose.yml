@@ -10,7 +10,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD_USER:-postgres}
+      POSTGRES_PASSWORD: 1234
       POSTGRES_DB: areska
     ports:
       - "5432:5432"
@@ -82,8 +82,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: native
       EUREKA_CLIENT_ENABLED: "false"
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/app/config-repo/
     volumes:
       - ./config-repo:/app/config-repo
+
     networks:
       - areska-network
 
@@ -95,7 +97,7 @@ services:
     ports:
       - "8761:8761"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      SPRING_CONFIG_IMPORT: "optional:http://config-server:8888"
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"
     depends_on:
@@ -115,13 +117,19 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST_USER: postgres
       DB_PORT_USER: 5432
       DB_NAME_USER: areska
-      DB_USERNAME_USER: ${DB_USERNAME_USER:-postgres}
-      DB_PASSWORD_USER: ${DB_PASSWORD_USER:-postgres}
+      DB_USERNAME_USER: postgres
+      DB_PASSWORD_USER: 1234
+      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      SPRING_APPLICATION_NAME: areska-user-service
+      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
+      SPRING_CLOUD_CONFIG_FAIL_FAST: true
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
       - config-server
       - eureka-server
@@ -137,13 +145,19 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST_PRODUCT: postgres
       DB_PORT_PRODUCT: 5432
       DB_NAME_PRODUCT: areska
-      DB_USERNAME_PRODUCT: ${DB_USERNAME_PRODUCT:-postgres}
-      DB_PASSWORD_PRODUCT: ${DB_PASSWORD_PRODUCT:-postgres}
+      DB_USERNAME_PRODUCT: postgres
+      DB_PASSWORD_PRODUCT: 1234
+      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      SPRING_APPLICATION_NAME: areska-product-service
+      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
+      SPRING_CLOUD_CONFIG_FAIL_FAST: true
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
       - config-server
       - eureka-server
@@ -159,13 +173,19 @@ services:
     ports:
       - "8084:8084"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST_CATEGORY: postgres
       DB_PORT_CATEGORY: 5432
       DB_NAME_CATEGORY: areska
-      DB_USERNAME_CATEGORY: ${DB_USERNAME_CATEGORY:-postgres}
-      DB_PASSWORD_CATEGORY: ${DB_PASSWORD_CATEGORY:-postgres}
+      DB_USERNAME_CATEGORY: postgres
+      DB_PASSWORD_CATEGORY: 1234
+      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      SPRING_APPLICATION_NAME: areska-category-services
+      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
+      SPRING_CLOUD_CONFIG_FAIL_FAST: true
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
       - config-server
       - eureka-server
@@ -181,17 +201,23 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST_ORDER: postgres
       DB_PORT_ORDER: 5432
       DB_NAME_ORDER: areska
-      DB_USERNAME_ORDER: ${DB_USERNAME_ORDER:-postgres}
-      DB_PASSWORD_ORDER: ${DB_PASSWORD_ORDER:-postgres}
+      DB_USERNAME_ORDER: postgres
+      DB_PASSWORD_ORDER: 1234
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      SPRING_APPLICATION_NAME: areska-order-service
+      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
+      SPRING_CLOUD_CONFIG_FAIL_FAST: true
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
       - config-server
       - eureka-server
@@ -208,13 +234,19 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST_PAYMENT: postgres
       DB_PORT_PAYMENT: 5432
       DB_NAME_PAYMENT: areska
-      DB_USERNAME_PAYMENT: ${DB_USERNAME_PAYMENT:-postgres}
-      DB_PASSWORD_PAYMENT: ${DB_PASSWORD_PAYMENT:-postgres}
+      DB_USERNAME_PAYMENT: postgres
+      DB_PASSWORD_PAYMENT: 1234
+      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      SPRING_APPLICATION_NAME: areska-payment-service
+      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
+      SPRING_CLOUD_CONFIG_FAIL_FAST: true
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
       - config-server
       - eureka-server
@@ -230,14 +262,19 @@ services:
     ports:
       - "8085:8085"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST_DELIVERY: postgres
       DB_PORT_DELIVERY: 5432
       DB_NAME_DELIVERY: areska
-      DB_USERNAME_DELIVERY: ${DB_USERNAME_DELIVERY:-postgres}
-      DB_PASSWORD_DELIVERY: ${DB_PASSWORD_DELIVERY:-postgres}
-
+      DB_USERNAME_DELIVERY: postgres
+      DB_PASSWORD_DELIVERY: 1234
+      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      SPRING_APPLICATION_NAME: areska-delivery-service
+      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
+      SPRING_CLOUD_CONFIG_FAIL_FAST: true
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
       - config-server
       - eureka-server
@@ -258,7 +295,7 @@ services:
     ports:
       - "8090:8090"
     environment:
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON}
       FIREBASE_CONFIG_PATH: /app/firebase-service-account.json
