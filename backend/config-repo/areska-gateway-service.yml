@@ -1,0 +1,67 @@
+server:
+  port: ${PORT:8090}
+
+spring:
+  application:
+    name: areska-gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      default-filters:
+        - AuthenticationFilter
+      routes:
+        - id: category-service
+          uri: lb://ARESKA-CATEGORY-SERVICES
+          predicates:
+            - Path=/api/categories/**
+          filters:
+            - StripPrefix=1
+        - id: delivery-service
+          uri: lb://ARESKA-DELIVERY-SERVICE
+          predicates:
+            - Path=/api/deliveries/**
+          filters:
+            - StripPrefix=1
+        - id: order-service
+          uri: lb://ARESKA-ORDER-SERVICE
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - StripPrefix=1
+        - id: payment-service
+          uri: lb://ARESKA-PAYMENT-SERVICE
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - StripPrefix=1
+        - id: product-service
+          uri: lb://ARESKA-PRODUCT-SERVICE
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - StripPrefix=1
+        - id: user-service
+          uri: lb://ARESKA-USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+# Firebase Configuration
+firebase:
+  config:
+    path: ${FIREBASE_CONFIG_PATH:firebase-service-account.json}
+  credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
+  project-id: ${FIREBASE_PROJECT_ID:}
+  private-key-id: ${FIREBASE_PRIVATE_KEY_ID:}
+  private-key: ${FIREBASE_PRIVATE_KEY:}
+  client-email: ${FIREBASE_CLIENT_EMAIL:}
+  client-id: ${FIREBASE_CLIENT_ID:}
+

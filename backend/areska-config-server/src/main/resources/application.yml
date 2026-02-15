@@ -1,0 +1,14 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: areska-config-server
+  profiles:
+    active: native # Usar modo nativo para leer de directorio local en lugar de Git
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:../config-repo # Si usas ruta relativa, asegúrate de que el directorio config-repo esté al mismo nivel que areska-config-server
+        # Si prefieres ruta absoluta, usa: file::///D:/proyecto-final-final/Micro-Areska/config-repo
