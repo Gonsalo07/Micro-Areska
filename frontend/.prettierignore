@@ -1,0 +1,11 @@
+node_modules/
+pnpm-lock.yaml
+
+dist/
+build/
+.next/
+
+README.md
+LICENSE
+
+/coverage

@@ -1,0 +1,14 @@
+# Dockerfile genérico para servicios Spring Boot
+# Se espera que el build (mvn package) se haga antes o dentro del docker (aquí usamos el jar generado)
+# Opción: Multistage build para compilar dentro
+FROM amazoncorretto:17-alpine-jdk
+
+WORKDIR /app
+
+# Argumento para el nombre del servicio
+ARG JAR_FILE=target/*.jar
+
+# Copiar el jar
+COPY ${JAR_FILE} app.jar
+
+ENTRYPOINT ["java","-jar","/app/app.jar"]

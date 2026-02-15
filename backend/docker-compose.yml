@@ -1,0 +1,283 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Infraestructura Base
+  # ==========================================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD_USER:-postgres}
+      POSTGRES_DB: areska
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - areska-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    networks:
+      - areska-network
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - areska-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - areska-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - areska-network
+
+  # ==========================================
+  # Servicios de Configuración y Descubrimiento
+  # ==========================================
+
+  config-server:
+    build: 
+      context: ./areska-config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      EUREKA_CLIENT_ENABLED: "false"
+    volumes:
+      - ./config-repo:/app/config-repo
+    networks:
+      - areska-network
+
+  eureka-server:
+    build: 
+      context: ./areska-eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    depends_on:
+      - config-server
+    networks:
+      - areska-network
+
+  # ==========================================
+  # Servicios de Dominio
+  # ==========================================
+
+  user-service:
+    build: 
+      context: ./areska-user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_HOST_USER: postgres
+      DB_PORT_USER: 5432
+      DB_NAME_USER: areska
+      DB_USERNAME_USER: ${DB_USERNAME_USER:-postgres}
+      DB_PASSWORD_USER: ${DB_PASSWORD_USER:-postgres}
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres
+    networks:
+      - areska-network
+
+  product-service:
+    build: 
+      context: ./areska-product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_HOST_PRODUCT: postgres
+      DB_PORT_PRODUCT: 5432
+      DB_NAME_PRODUCT: areska
+      DB_USERNAME_PRODUCT: ${DB_USERNAME_PRODUCT:-postgres}
+      DB_PASSWORD_PRODUCT: ${DB_PASSWORD_PRODUCT:-postgres}
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres
+    networks:
+      - areska-network
+
+  category-service:
+    build: 
+      context: ./areska-category-services
+      dockerfile: Dockerfile
+    container_name: category-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_HOST_CATEGORY: postgres
+      DB_PORT_CATEGORY: 5432
+      DB_NAME_CATEGORY: areska
+      DB_USERNAME_CATEGORY: ${DB_USERNAME_CATEGORY:-postgres}
+      DB_PASSWORD_CATEGORY: ${DB_PASSWORD_CATEGORY:-postgres}
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres
+    networks:
+      - areska-network
+
+  order-service:
+    build: 
+      context: ./areska-order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_HOST_ORDER: postgres
+      DB_PORT_ORDER: 5432
+      DB_NAME_ORDER: areska
+      DB_USERNAME_ORDER: ${DB_USERNAME_ORDER:-postgres}
+      DB_PASSWORD_ORDER: ${DB_PASSWORD_ORDER:-postgres}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres
+      - rabbitmq
+    networks:
+      - areska-network
+  
+  payment-service:
+    build: 
+      context: ./areska-payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_HOST_PAYMENT: postgres
+      DB_PORT_PAYMENT: 5432
+      DB_NAME_PAYMENT: areska
+      DB_USERNAME_PAYMENT: ${DB_USERNAME_PAYMENT:-postgres}
+      DB_PASSWORD_PAYMENT: ${DB_PASSWORD_PAYMENT:-postgres}
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres
+    networks:
+      - areska-network
+
+  delivery-service:
+    build: 
+      context: ./areska-delivery-service
+      dockerfile: Dockerfile
+    container_name: delivery-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_HOST_DELIVERY: postgres
+      DB_PORT_DELIVERY: 5432
+      DB_NAME_DELIVERY: areska
+      DB_USERNAME_DELIVERY: ${DB_USERNAME_DELIVERY:-postgres}
+      DB_PASSWORD_DELIVERY: ${DB_PASSWORD_DELIVERY:-postgres}
+
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres
+      - rabbitmq
+    networks:
+      - areska-network
+
+  # ==========================================
+  # API Gateway
+  # ==========================================
+
+  gateway-service:
+    build: 
+      context: ./areska-gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON}
+      FIREBASE_CONFIG_PATH: /app/firebase-service-account.json
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY_ID: ${FIREBASE_PRIVATE_KEY_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_CLIENT_ID: ${FIREBASE_CLIENT_ID}
+    volumes:
+      - ./areska-gateway-service/firebase-service-account.json:/app/firebase-service-account.json
+    depends_on:
+      - config-server
+      - eureka-server
+      - user-service
+      - product-service
+      - order-service
+    networks:
+      - areska-network
+
+networks:
+  areska-network:
+    driver: bridge
