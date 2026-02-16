@@ -39,7 +39,7 @@ public class OrderService {
 
     public List<OrderResponse> getList() {
         return StreamSupport.stream(orderRepository.findAll().spliterator(), false)
-                .map(this::toResponse)
+                .map(order -> toResponse(order))
                 .toList();
     }
 
@@ -49,7 +49,7 @@ public class OrderService {
             throw new ResourceNotFoundException("No orders found for user ID: " + userId);
         }
         return orders.stream()
-                .map(this::toResponse)
+                .map(order -> toResponse(order))
                 .toList();
     }
 
@@ -61,7 +61,7 @@ public class OrderService {
         // Buscar órdenes por userId
         List<Order> orders = orderRepository.findByUserId(user.id());
         return orders.stream()
-                .map(this::toResponse)
+                .map(order -> toResponse(order))
                 .toList();
     }
 

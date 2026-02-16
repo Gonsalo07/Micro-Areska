@@ -22,12 +22,13 @@ public class RabbitMQConfig {
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(new Jackson2JsonMessageConverter());
+        template.setMessageConverter(jsonMessageConverter());
         return template;
     }
 
     @Bean
-    public Jackson2JsonMessageConverter messageConverter() {
+    @SuppressWarnings("deprecation")
+    public Jackson2JsonMessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 }

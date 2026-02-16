@@ -16,7 +16,7 @@ import reactor.core.scheduler.Schedulers; // Para el manejo de hilos de Firebase
 
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
-    
+
     @Lazy
     @Autowired
     private RouterValidator routerValidator;
@@ -53,20 +53,20 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             String token = authHeader.substring(7);
 
-           return Mono.fromCallable(() -> FirebaseAuth.getInstance().verifyIdToken(token))
-    .subscribeOn(Schedulers.boundedElastic()) // Ejecuta en un hilo separado
-    .flatMap(decodedToken -> {
-        System.out.println("Token verificado: " + decodedToken.getUid());
-        ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                .header("X-Firebase-UiD", decodedToken.getUid())
-                .header("X-Firebase-Email", decodedToken.getEmail())
-                .build();
-        return chain.filter(exchange.mutate().request(modifiedRequest).build());
-    })
-    .onErrorResume(e -> {
-        System.err.println("Error Firebase: " + e.getMessage());
-        return onError(exchange, "Invalid Token", HttpStatus.UNAUTHORIZED);
-    });
+            return Mono.fromCallable(() -> FirebaseAuth.getInstance().verifyIdToken(token))
+                    .subscribeOn(Schedulers.boundedElastic()) // Ejecuta en un hilo separado
+                    .flatMap(decodedToken -> {
+                        System.out.println("Token verificado: " + decodedToken.getUid());
+                        ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
+                                .header("X-Firebase-UiD", decodedToken.getUid())
+                                .header("X-Firebase-Email", decodedToken.getEmail())
+                                .build();
+                        return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                    })
+                    .onErrorResume(e -> {
+                        System.err.println("Error Firebase: " + e.getMessage());
+                        return onError(exchange, "Invalid Token", HttpStatus.UNAUTHORIZED);
+                    });
         };
     }
 
