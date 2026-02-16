@@ -1,22 +1,23 @@
 package com.areska.gateway.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.context.annotation.Lazy; // Para el error de inyección circular
+import org.springframework.stereotype.Component;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
-
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers; // Para el manejo de hilos de Firebase
 
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
-    
+
+    @Lazy
     @Autowired
     private RouterValidator routerValidator;
 
@@ -52,30 +53,20 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             String token = authHeader.substring(7);
 
-            try {
-                // 2. Verify Token with Firebase
-                // Note: In a reactive environment, this blocking call should ideally be wrapped, 
-                // but strictly speaking FirebaseAuth.verifyIdToken is blocking. 
-                // For high throughput, consider a wrapper or dedicated thread pool.
-                // For simplicity here, we call it directly.
-                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
-                
-                System.out.println("Token verificado exitosamente para UID: " + decodedToken.getUid());
-
-                // 3. Populate headers for downstream services
-                ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                        .header("X-Firebase-UiD", decodedToken.getUid())
-                        .header("X-Firebase-Email", decodedToken.getEmail())
-                        .build();
-
-                return chain.filter(exchange.mutate().request(modifiedRequest).build());
-
-            } catch (Exception e) {
-                System.err.println("Error verifying Firebase token for path: " + request.getURI().getPath());
-                System.err.println("Error details: " + e.getMessage());
-                // e.printStackTrace(); 
-                return onError(exchange, "Invalid Token: " + e.getMessage(), HttpStatus.UNAUTHORIZED);
-            }
+            return Mono.fromCallable(() -> FirebaseAuth.getInstance().verifyIdToken(token))
+                    .subscribeOn(Schedulers.boundedElastic()) // Ejecuta en un hilo separado
+                    .flatMap(decodedToken -> {
+                        System.out.println("Token verificado: " + decodedToken.getUid());
+                        ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
+                                .header("X-Firebase-UiD", decodedToken.getUid())
+                                .header("X-Firebase-Email", decodedToken.getEmail())
+                                .build();
+                        return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                    })
+                    .onErrorResume(e -> {
+                        System.err.println("Error Firebase: " + e.getMessage());
+                        return onError(exchange, "Invalid Token", HttpStatus.UNAUTHORIZED);
+                    });
         };
     }
 

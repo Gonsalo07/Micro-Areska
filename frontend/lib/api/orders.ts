@@ -54,14 +54,19 @@ export type CreateOrderPayload = {
 }
 
 export const ordersApi = {
-  getByFirebaseUid: async (firebaseUid: string): Promise<OrderResponse[]> => {
+  getByFirebaseUid: async (firebaseUid: string, token?: string): Promise<OrderResponse[]> => {
     try {
       if (!firebaseUid) {
         return []
       }
 
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
       const url = `/orders/user-by-firebase-uid/${firebaseUid}`
-      const data = await apiClient.get<OrderResponse[]>(url)
+      const data = await apiClient.get<OrderResponse[]>(url, { headers })
       return data || []
     } catch {
       return []

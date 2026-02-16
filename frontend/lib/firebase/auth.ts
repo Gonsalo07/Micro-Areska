@@ -55,19 +55,19 @@ async function syncUserToBackend(u: FirebaseUser, authProvider: string, maxRetri
 
   if (!payload.email) return
 
-  console.log('[AuthLib] syncUserToBackend: Payload:', payload)
+  //('[AuthLib] syncUserToBackend: Payload:', payload)
 
   let lastError: unknown
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    console.log(`[AuthLib] syncUserToBackend: Intento ${attempt + 1}/${maxRetries}...`)
+    //console.log(`[AuthLib] syncUserToBackend: Intento ${attempt + 1}/${maxRetries}...`)
     try {
       await usersApi.syncWithFirebase(payload, token)
-      console.log('[AuthLib] syncUserToBackend: POST exitoso.')
+      //console.log('[AuthLib] syncUserToBackend: POST exitoso.')
 
       try {
         const user = await usersApi.getByFirebaseUid(u.uid, token)
         if (user?.id) {
-          console.log('[AuthLib] syncUserToBackend: Verificación GET exitosa.')
+          //console.log('[AuthLib] syncUserToBackend: Verificación GET exitosa.')
           return
         }
       } catch {}
@@ -114,15 +114,15 @@ export async function signupWithEmail(
 }
 
 export async function loginWithGoogle(): Promise<FirebaseUser> {
-  console.log('[AuthLib] loginWithGoogle: Iniciando signInWithPopup...')
+  //console.log('[AuthLib] loginWithGoogle: Iniciando signInWithPopup...')
   const auth = getAuthClient()
   const cred = await signInWithPopup(auth, getGoogleProvider())
-  console.log('[AuthLib] loginWithGoogle: Popup cerrado. Usuario:', cred.user.uid)
+  //console.log('[AuthLib] loginWithGoogle: Popup cerrado. Usuario:', cred.user.uid)
   
   const u = cred.user
-  console.log('[AuthLib] loginWithGoogle: Iniciando syncUserToBackend...')
+  //console.log('[AuthLib] loginWithGoogle: Iniciando syncUserToBackend...')
   await syncUserToBackend(u, 'google')
-  console.log('[AuthLib] loginWithGoogle: syncUserToBackend finalizado.')
+  //console.log('[AuthLib] loginWithGoogle: syncUserToBackend finalizado.')
   
   return u
 }

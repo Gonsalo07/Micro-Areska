@@ -25,4 +25,16 @@ public class UserServiceClient {
             throw new ResourceNotFoundException("User not found with ID: " + id);
         }
     }
+
+    public Optional<UserResponse> findUserByFirebaseUid(String firebaseUid) {
+        try {
+            var response = userFeignClient.getUserByFirebaseUid(firebaseUid);
+            if (response != null && response.getData() != null) {
+                return Optional.of(response.getData());
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("User not found with firebaseUid: " + firebaseUid);
+        }
     }
+}

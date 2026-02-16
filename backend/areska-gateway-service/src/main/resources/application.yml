@@ -9,7 +9,9 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:8090"
             allowedMethods:
               - GET
               - POST
@@ -17,6 +19,10 @@ spring:
               - DELETE
               - OPTIONS
             allowedHeaders: "*"
+            allowCredentials: true
+            exposedHeaders:
+              - "X-Firebase-UiD"
+              - "X-Firebase-Email"
       discovery:
         locator:
           enabled: true
@@ -67,6 +73,8 @@ firebase:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
-    hostname: localhost
+    prefer-ip-address: ${EUREKA_USE_IP:false}
+    hostname: ${HOSTNAME:localhost}
+
