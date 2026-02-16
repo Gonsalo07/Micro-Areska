@@ -51,8 +51,8 @@ public class OrderController {
 
     @GetMapping("/user-by-firebase-uid/{firebaseUid}")
     @Operation(summary = "List all orders for a specific user using their Firebase UID")
-    public ResponseEntity<ApiSuccess<List<OrderResponse>>> getByFirebaseUid(@PathVariable Integer firebaseUid) {
-        List<OrderResponse> orders = orderService.getOrdersByUserId(firebaseUid);
+    public ResponseEntity<ApiSuccess<List<OrderResponse>>> getByFirebaseUid(@PathVariable String firebaseUid) {
+        List<OrderResponse> orders = orderService.getOrdersByFirebaseUid(firebaseUid);
         ApiSuccess<List<OrderResponse>> response = new ApiSuccess<>(
                 orders.isEmpty() ? "No orders found" : "Orders listed successfully",
                 orders);

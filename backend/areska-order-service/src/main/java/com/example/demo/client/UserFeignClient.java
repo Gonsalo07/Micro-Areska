@@ -12,6 +12,9 @@ public interface UserFeignClient {
     @GetMapping("/users/{id}")
     ApiSuccess<UserResponse> getUserById(@PathVariable Integer id);
 
+    @GetMapping("/users/firebase/{firebaseUid}")
+    ApiSuccess<UserResponse> getUserByFirebaseUid(@PathVariable String firebaseUid);
+
     record UserResponse(
             Integer id,
             String firstName,

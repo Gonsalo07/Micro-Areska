@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Store } from 'lucide-react'
 
 import { ordersApi } from '@/lib/api/orders'
+import { getAuthClient } from '@/lib/firebase/client'
 import { useAuthStore } from '@/stores/auth-store'
 
 type OrderItem = {
@@ -37,7 +38,11 @@ export function MyPurchasesPage() {
 
     const fetchOrders = async () => {
       try {
-        const data = await ordersApi.getByFirebaseUid(user.firebaseUid)
+        const auth = getAuthClient()
+        const currentUser = auth.currentUser
+        const token = currentUser ? await currentUser.getIdToken() : undefined
+        
+        const data = await ordersApi.getByFirebaseUid(user.firebaseUid, token)
         console.warn('📦 Órdenes recibidas:', data)
         setOrders(data)
       } catch (error) {

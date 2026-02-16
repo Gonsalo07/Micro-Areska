@@ -53,6 +53,18 @@ public class OrderService {
                 .toList();
     }
 
+    public List<OrderResponse> getOrdersByFirebaseUid(String firebaseUid) {
+        // Obtener el usuario por firebaseUid
+        var user = userServiceClient.findUserByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with firebaseUid: " + firebaseUid));
+        
+        // Buscar órdenes por userId
+        List<Order> orders = orderRepository.findByUserId(user.id());
+        return orders.stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     public OrderResponse getDetailById(Integer id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
