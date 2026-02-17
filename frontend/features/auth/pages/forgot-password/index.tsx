@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+
+import { useAuthStore } from '@auth/stores/auth.store'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +23,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
 
 const forgotPasswordSchema = z.object({
   email: z.email({ message: 'Correo electrónico inválido' }).trim(),
@@ -31,13 +32,9 @@ type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>
 
 export function ForgotPasswordPage({ className, ...props }: React.ComponentProps<'div'>) {
   const router = useRouter()
-  const { resetPasswordEmail, init } = useAuthStore()
+  const { resetPasswordEmail } = useAuthStore()
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    init()
-  }, [init])
 
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),

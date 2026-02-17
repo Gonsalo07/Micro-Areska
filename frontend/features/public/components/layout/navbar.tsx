@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { LogIn, LogOut, Menu, Search, Settings, ShoppingCart, Store, X } from 'lucide-react'
 import Link from 'next/link'
+
+import { useAuthStore } from '@auth/stores/auth.store'
 
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { Logo } from '@/components/shared/logo'
@@ -20,17 +22,15 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { getInitials } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
 
 import { CartCount } from './cart-count'
 import { Navigation } from './navigation'
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, logout, init, isLoadingInitial } = useAuthStore()
-  useEffect(() => {
-    init()
-  }, [init])
+  const profile = useAuthStore((s) => s.profile)
+  const loading = useAuthStore((s) => s.loading)
+  const logout = useAuthStore((s) => s.logout)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
 
@@ -80,19 +80,19 @@ export function Navbar() {
               </Link>
             </Button>
 
-            {isLoadingInitial ? (
+            {loading ? (
               <div className="h-10 w-10 animate-pulse rounded-md bg-muted" />
-            ) : user ? (
+            ) : profile ? (
               <>
                 <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="rounded-full">
                       <Avatar className="size-8">
-                        {user.photoUrl ? (
-                          <AvatarImage src={user.photoUrl} alt="Foto de perfil" />
+                        {profile.photoUrl ? (
+                          <AvatarImage src={profile.photoUrl} alt="Foto de perfil" />
                         ) : (
                           <AvatarFallback className="text-xs">
-                            {getInitials(user.firstName, user.lastName)}
+                            {getInitials(profile.firstName, profile.lastName)}
                           </AvatarFallback>
                         )}
                       </Avatar>

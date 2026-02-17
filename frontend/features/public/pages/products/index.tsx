@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ArrowUpDown, Filter } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+import { productsApi } from '@public/api/products'
 import { ProductCard } from '@public/pages/products/detail/product-card'
 import { ProductList } from '@public/schemas/product-list-schema'
 
@@ -18,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { productsApi } from '@/lib/api/products'
 
 import { ProductsSkeleton } from './products-skeleton'
 

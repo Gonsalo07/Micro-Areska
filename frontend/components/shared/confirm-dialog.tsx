@@ -54,7 +54,6 @@ export function ConfirmDialog({
       <AlertDialogContent
         onOpenAutoFocus={(e) => {
           e.preventDefault()
-          actionButtonRef.current?.focus()
         }}
       >
         <AlertDialogHeader>
@@ -66,24 +65,18 @@ export function ConfirmDialog({
           {to ? (
             <AlertDialogAction
               asChild
-              className={buttonVariants({
-                variant: actionButton.variant ?? 'default',
-              })}
-              ref={actionButtonRef}
+              className={buttonVariants({ variant: actionButton.variant ?? 'default' })}
             >
               <Link href={to}>
-                {actionButton.icon} {actionButton.label}
+                {actionButton?.icon} {actionButton.label}
               </Link>
             </AlertDialogAction>
           ) : (
             <AlertDialogAction
-              className={buttonVariants({
-                variant: actionButton.variant ?? 'default',
-              })}
+              className={buttonVariants({ variant: actionButton?.variant ?? 'default' })}
               onClick={onConfirm}
-              ref={actionButtonRef}
             >
-              {actionButton.icon} {actionButton.label}
+              {actionButton?.icon} {actionButton.label}
             </AlertDialogAction>
           )}
         </AlertDialogFooter>

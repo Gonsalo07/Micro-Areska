@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+
+import { useAuthStore } from '@auth/stores/auth.store'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +17,6 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
 
 const loginSchema = z.object({
   email: z.email({ message: 'Correo electrónico inválido' }).trim(),
@@ -26,12 +27,8 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export function LoginPage({ className, ...props }: React.ComponentProps<'div'>) {
   const router = useRouter()
-  const { login, isLoading, loginWithGoogle, init } = useAuthStore()
+  const { login, isLoading, loginWithGoogle } = useAuthStore()
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    init()
-  }, [init])
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),

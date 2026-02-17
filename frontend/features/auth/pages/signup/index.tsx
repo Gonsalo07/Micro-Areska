@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+
+import { useAuthStore } from '@auth/stores/auth.store'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +23,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
 
 const signupSchema = z
   .object({
@@ -52,12 +53,8 @@ type SignupFormValues = z.infer<typeof signupSchema>
 
 export function SignUpPage({ className, ...props }: React.ComponentProps<'div'>) {
   const router = useRouter()
-  const { signup, init, isLoading, loginWithGoogle } = useAuthStore()
+  const { signup, isLoading, loginWithGoogle } = useAuthStore()
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    init()
-  }, [init])
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),

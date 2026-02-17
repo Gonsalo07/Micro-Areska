@@ -5,10 +5,11 @@ import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
+import { useAuthStore } from '@auth/stores/auth.store'
+import { ordersApi } from '@public/api/orders'
+import { usersApi } from '@public/api/users'
+
 import { Button } from '@/components/ui/button'
-import { ordersApi } from '@/lib/api/orders'
-import { usersApi } from '@/lib/api/users'
-import { useAuthStore } from '@/stores/auth-store'
 import { useCartStore } from '@/stores/cart-store'
 
 const supportEmail = 'ventasweb@areskastore.com'
@@ -26,7 +27,7 @@ export function YapePage() {
   const [data, setData] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const { user } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
   const router = useRouter()
   const [remaining, setRemaining] = useState(300)
 
@@ -75,7 +76,7 @@ export function YapePage() {
 
     setSaving(true)
     try {
-      const userProfile = await usersApi.getByFirebaseUid(user!.firebaseUid)
+      const userProfile = await usersApi.getByFirebaseUid(profile!.firebaseUid)
 
       if (!userProfile || !userProfile.id) {
         throw new Error('Error: No se encontró el ID del usuario.')
@@ -89,7 +90,7 @@ export function YapePage() {
         pickupMethod: 'shipping',
         orderCode: data.orderCode,
         userId: realUserId,
-        firebaseUid: user?.firebaseUid,
+        firebaseUid: profile?.firebaseUid,
         customer: {
           email: data.email,
           firstName: data.firstName,
@@ -101,7 +102,7 @@ export function YapePage() {
           dni: data.dni,
           docType: data.docType,
           docNumber: data.docNumber,
-          firebaseUid: user?.firebaseUid,
+          firebaseUid: profile?.firebaseUid,
         },
         items: mapItemsForApi(data.items || []),
       })

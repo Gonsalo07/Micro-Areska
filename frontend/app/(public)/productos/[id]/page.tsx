@@ -1,6 +1,5 @@
+import { productsApi } from '@public/api/products'
 import { ProductDetailPage } from '@public/pages/products/detail'
-
-import { productsApi } from '@/lib/api/products'
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
