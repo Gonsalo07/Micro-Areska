@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.UserRequest;
@@ -69,7 +68,8 @@ public class UserController {
 
     @GetMapping("/me")
     @Operation(summary = "Get current authenticated user profile")
-    public ResponseEntity<ApiSuccess<UserResponse>> getMyProfile(@org.springframework.web.bind.annotation.RequestHeader(value = "X-Firebase-UiD", required = false) String firebaseUid) {
+    public ResponseEntity<ApiSuccess<UserResponse>> getMyProfile(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Firebase-UiD", required = false) String firebaseUid) {
         if (firebaseUid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -83,6 +83,21 @@ public class UserController {
     public ResponseEntity<ApiSuccess<UserResponse>> syncWithFirebase(@Valid @RequestBody UserRequest request) {
         UserResponse response = userService.syncWithFirebase(request);
         return ResponseEntity.ok(new ApiSuccess<>("User synced successfully", response));
+    }
+
+    @DeleteMapping("/me")
+    @Operation(summary = "Delete current user account (soft delete)")
+    public ResponseEntity<?> deleteMyAccount(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Firebase-UiD", required = false) String firebaseUid) {
+        if (firebaseUid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return userService.findByFirebaseUid(firebaseUid)
+                .map(user -> {
+                    userService.delete(user.id());
+                    return ResponseEntity.ok(new ApiSuccess<>("Account deleted successfully", null));
+                })
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
     @PostMapping

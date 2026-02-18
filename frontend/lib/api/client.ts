@@ -18,6 +18,10 @@ export class ApiClientError extends Error {
   }
 }
 
+export type ApiClientOptions = RequestInit & {
+  authenticated?: boolean
+}
+
 export class ApiClient {
   private baseUrl: string
 
@@ -25,34 +29,53 @@ export class ApiClient {
     this.baseUrl = baseUrl
   }
 
-  async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private async request<T>(endpoint: string, options: ApiClientOptions = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
 
-    const { headers, ...restOptions } = options || {}
+    const headers = new Headers(options.headers)
+    headers.set('Content-Type', 'application/json')
+
+    const isBrowser = typeof window !== 'undefined'
+
+    if (options.authenticated !== false && isBrowser) {
+      const { getAuthClient } = await import('@/lib/firebase/client')
+      try {
+        const auth = getAuthClient()
+        const token = await auth.currentUser?.getIdToken()
+        if (token) {
+          headers.set('Authorization', `Bearer ${token}`)
+        }
+      } catch {}
+    }
+
+    const { authenticated: _, ...fetchOptions } = options
 
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        ...restOptions,
+      const res = await fetch(url, {
+        ...fetchOptions,
+        headers,
       })
 
-      const text = await response.text()
+      if (res.status === 204) return null as T
+
+      const text = await res.text()
 
       if (!text || text.trim() === '') {
         return [] as T
       }
 
-      const data: ApiResponse<T> = JSON.parse(text)
-
-      if (!data.success) {
-        throw ApiClientError.fromApiError(data)
+      let json: ApiResponse<T>
+      try {
+        json = JSON.parse(text) as ApiResponse<T>
+      } catch {
+        throw new ApiClientError(res.status, endpoint, text || `HTTP Error ${res.status}`)
       }
 
-      return data.data
+      if (!json.success) {
+        throw ApiClientError.fromApiError(json)
+      }
+
+      return json.data
     } catch (error) {
       if (error instanceof ApiClientError) {
         throw error
@@ -62,97 +85,28 @@ export class ApiClient {
     }
   }
 
-  async post<T>(endpoint: string, body?: unknown, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
-
-    const { headers, ...restOptions } = options || {}
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        body: body ? JSON.stringify(body) : undefined,
-        ...restOptions,
-      })
-
-      const data: ApiResponse<T> = await response.json()
-
-      if (!data.success) {
-        throw ApiClientError.fromApiError(data)
-      }
-
-      return data.data
-    } catch (error) {
-      if (error instanceof ApiClientError) {
-        throw error
-      }
-
-      throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred')
-    }
+  get<T>(endpoint: string, options?: ApiClientOptions): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET', ...options })
   }
 
-  async put<T>(endpoint: string, body?: unknown, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
-
-    const { headers, ...restOptions } = options || {}
-
-    try {
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        body: body ? JSON.stringify(body) : undefined,
-        ...restOptions,
-      })
-
-      const data: ApiResponse<T> = await response.json()
-
-      if (!data.success) {
-        throw ApiClientError.fromApiError(data)
-      }
-
-      return data.data
-    } catch (error) {
-      if (error instanceof ApiClientError) {
-        throw error
-      }
-
-      throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred')
-    }
+  post<T>(endpoint: string, body?: unknown, options?: ApiClientOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    })
   }
 
-  async delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+  put<T>(endpoint: string, body?: unknown, options?: ApiClientOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    })
+  }
 
-    try {
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
-        ...options,
-      })
-
-      const data: ApiResponse<T> = await response.json()
-
-      if (!data.success) {
-        throw ApiClientError.fromApiError(data)
-      }
-
-      return data.data
-    } catch (error) {
-      if (error instanceof ApiClientError) {
-        throw error
-      }
-
-      throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred')
-    }
+  delete<T>(endpoint: string, options?: ApiClientOptions): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE', ...options })
   }
 }
 

@@ -13,7 +13,9 @@ CREATE TABLE users (
     auth_provider VARCHAR(32),
     email_verified BOOLEAN DEFAULT FALSE,
     photo_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role VARCHAR(20) NOT NULL DEFAULT 'CLIENTE' CHECK (role IN ('CLIENTE', 'ADMIN')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
 CREATE TABLE categories (

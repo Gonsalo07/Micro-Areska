@@ -1,5 +1,6 @@
 export interface ApiFieldError {
   field: string
+  code?: string | null
   message: string
   rejectedValue?: unknown
 }

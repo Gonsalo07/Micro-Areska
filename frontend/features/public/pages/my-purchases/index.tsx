@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react'
 
 import { Store } from 'lucide-react'
 
-import { ordersApi } from '@/lib/api/orders'
-import { getAuthClient } from '@/lib/firebase/client'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore } from '@auth/stores/auth.store'
+import { ordersApi } from '@public/api/orders'
 
 type OrderItem = {
   id: number
@@ -29,21 +28,16 @@ type Order = {
 }
 
 export function MyPurchasesPage() {
-  const { user } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user?.firebaseUid) return
+    if (!profile?.firebaseUid) return
 
     const fetchOrders = async () => {
       try {
-        const auth = getAuthClient()
-        const currentUser = auth.currentUser
-        const token = currentUser ? await currentUser.getIdToken() : undefined
-        
-        const data = await ordersApi.getByFirebaseUid(user.firebaseUid, token)
-        console.warn('📦 Órdenes recibidas:', data)
+        const data = await ordersApi.getByFirebaseUid(profile.firebaseUid)
         setOrders(data)
       } catch (error) {
         console.error('Error al obtener órdenes:', error)
@@ -54,7 +48,7 @@ export function MyPurchasesPage() {
     }
 
     fetchOrders()
-  }, [user?.firebaseUid])
+  }, [profile?.firebaseUid])
 
   if (loading) {
     return (

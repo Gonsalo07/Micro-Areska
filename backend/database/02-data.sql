@@ -284,12 +284,12 @@ INSERT INTO product_features (product_id, feature_text, display_order) VALUES
 (12, 'Vibración HD', 3),
 (12, 'Compatible PC/consolas', 4);
 
-INSERT INTO users (first_name, last_name, email, phone, address, firebase_uid, auth_provider, email_verified, photo_url) VALUES
-('Alejandro', 'Vargas', 'alejandro.vargas@mail.com', '555-1001', 'Av. Gamer 123, Ciudad A', NULL, 'password', TRUE, NULL),
-('Belen', 'Quiroga', 'belen.quiroga@mail.com', '555-1002', 'Calle RGB 45, Ciudad B', NULL, 'password', TRUE, NULL),
-('Carlos', 'Molina', 'carlos.molina@mail.com', '555-1003', 'Jirón Pixel 678, Ciudad C', NULL, 'password', TRUE, NULL),
-('Daniela', 'Flores', 'daniela.flores@mail.com', '555-1004', 'Pasaje E-Sports 90, Ciudad D', NULL, 'password', TRUE, NULL),
-('Emilio', 'Gutiérrez', 'emilio.gutierrez@mail.com', '555-1005', 'Av. Latencia 101, Ciudad A', NULL, 'password', TRUE, NULL);
+INSERT INTO users (first_name, last_name, email, phone, address, firebase_uid, auth_provider, email_verified, photo_url, role) VALUES
+('Alejandro', 'Vargas', 'alejandro.vargas@mail.com', '555-1001', 'Av. Gamer 123, Ciudad A', NULL, 'password', TRUE, NULL, 'ADMIN'),
+('Belen', 'Quiroga', 'belen.quiroga@mail.com', '555-1002', 'Calle RGB 45, Ciudad B', NULL, 'password', TRUE, NULL, 'CLIENTE'),
+('Carlos', 'Molina', 'carlos.molina@mail.com', '555-1003', 'Jirón Pixel 678, Ciudad C', NULL, 'password', TRUE, NULL, 'CLIENTE'),
+('Daniela', 'Flores', 'daniela.flores@mail.com', '555-1004', 'Pasaje E-Sports 90, Ciudad D', NULL, 'password', TRUE, NULL, 'CLIENTE'),
+('Emilio', 'Gutiérrez', 'emilio.gutierrez@mail.com', '555-1005', 'Av. Latencia 101, Ciudad A', NULL, 'password', TRUE, NULL, 'CLIENTE');
 
 INSERT INTO orders (user_id, order_date, status, total, pickup_method) VALUES
 (1, '2024-10-01 10:00:00', 'completed', 239.98, 'shipping'),

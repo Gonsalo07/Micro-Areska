@@ -5,32 +5,28 @@ import { ReactNode, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { AuthLayout } from '@auth/layout'
-
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore } from '@auth/stores/auth.store'
 
 interface Props {
   children: ReactNode
 }
 
 export default function Layout({ children }: Props) {
-  const { init, user, isLoadingInitial } = useAuthStore()
+  const loading = useAuthStore((s) => s.loading)
+  const profile = useAuthStore((s) => s.profile)
   const router = useRouter()
 
   useEffect(() => {
-    init()
-  }, [init])
-
-  useEffect(() => {
-    if (!isLoadingInitial && user) {
+    if (!loading && profile) {
       router.replace('/')
     }
-  }, [isLoadingInitial, user, router])
+  }, [loading, profile, router])
 
-  if (isLoadingInitial) {
+  if (loading) {
     return null
   }
 
-  if (user) {
+  if (profile) {
     return null
   }
 

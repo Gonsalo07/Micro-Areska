@@ -7,6 +7,8 @@ import { AlertCircle, Check, CheckCircle2, Copy, Mail, TriangleAlert } from 'luc
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import { useAuthStore } from '@auth/stores/auth.store'
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +41,6 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Spinner } from '@/components/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
-import { useAuthStore } from '@/stores/auth-store'
 
 const emailVerificationSchema = z.object({
   newEmail: z.email({ message: 'Introduce un correo electrónico válido.' }).trim(),
@@ -79,7 +80,9 @@ type EmailVerificationFormValues = z.infer<typeof emailVerificationSchema>
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
 export function AccountForm() {
-  const { user, changePassword, changeEmail } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
+  const changePassword = useAuthStore((s) => s.changePassword)
+  const changeEmail = useAuthStore((s) => s.changeEmail)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -108,14 +111,14 @@ export function AccountForm() {
     }
   }
 
-  const isPasswordProvider = user!.authProvider === 'password'
+  const isPasswordProvider = profile!.authProvider === 'password'
   const isDisabled = !isPasswordProvider
 
   const handleEmailVerificationSubmit = async (data: EmailVerificationFormValues) => {
     setEmailError(null)
     setEmailSuccessMessage(null)
 
-    if (data.newEmail === user?.email) {
+    if (data.newEmail === profile?.email) {
       setEmailError('El nuevo correo es igual al actual.')
       setIsDialogOpen(false)
       return
@@ -179,7 +182,7 @@ export function AccountForm() {
             <p>
               Estas funciones requieren cuenta con contraseña.
               <br />
-              Tu cuenta actual es de {user!.authProvider}.
+              Tu cuenta actual es de {profile!.authProvider}.
             </p>
             <ul className="list-inside list-disc text-sm">
               <li>Contacta con soporte para más ayuda</li>
@@ -218,7 +221,7 @@ export function AccountForm() {
                   </svg>
                 )}
               </InputGroupAddon>
-              <InputGroupInput id="email-copy-input" value={user?.email || ''} readOnly />
+              <InputGroupInput id="email-copy-input" value={profile?.email || ''} readOnly />
               <InputGroupAddon align="inline-end">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -226,7 +229,7 @@ export function AccountForm() {
                       aria-label="Copiar correo"
                       size="icon-xs"
                       onClick={() => {
-                        copyToClipboard(user?.email || '')
+                        copyToClipboard(profile?.email || '')
                       }}
                     >
                       {isCopied ? <Check /> : <Copy />}
@@ -245,7 +248,7 @@ export function AccountForm() {
             <DialogTrigger asChild>
               <Button disabled={isDisabled || isEmailLoading}>Actualizar correo</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]" isStatic>
+            <DialogContent className="sm:max-w-[425px]">
               <Form {...emailVerificationForm}>
                 <form onSubmit={emailVerificationForm.handleSubmit(handleEmailVerificationSubmit)}>
                   <DialogHeader>

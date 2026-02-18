@@ -13,5 +13,6 @@ public record UserResponse(
     String authProvider,
     Boolean emailVerified,
     String photoUrl,
+    String role,
     LocalDateTime createdAt
 ) {}

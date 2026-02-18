@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react'
 
+import { productsApi } from '@public/api/products'
 import { ProductCard } from '@public/pages/products/detail/product-card'
 import { ProductCardSkeleton } from '@public/pages/products/detail/product-card-skeleton'
 import { ProductList } from '@public/schemas/product-list-schema'
-
-import { productsApi } from '@/lib/api/products'
 
 export function FeaturedProducts() {
   const [products, setProducts] = useState<ProductList[]>([])

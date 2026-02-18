@@ -23,24 +23,23 @@ public class RouterValidator {
                     .stream()
                     .noneMatch(uri -> request.getURI().getPath().contains(uri));
                     
-    // Specifically allow GET requests for products and categories to be public
-    // but require auth for POST/PUT/DELETE
     public boolean isOpenEndpoint(ServerHttpRequest request) {
         String path = request.getURI().getPath();
         HttpMethod method = request.getMethod();
         
-        // Allow OPTIONS requests for CORS
         if (method == HttpMethod.OPTIONS) {
             return true;
         }
 
-        // Public read-only endpoints
         if (method == HttpMethod.GET && (path.contains("/api/products") || path.contains("/api/categories"))) {
             return true;
         }
         
-        // Fully public endpoints (auth, eureka)
         if (path.contains("/api/auth") || path.contains("/eureka")) {
+            return true;
+        }
+
+        if (path.contains("/api/users/firebase/sync") && method == HttpMethod.POST) {
             return true;
         }
 

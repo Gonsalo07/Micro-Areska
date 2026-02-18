@@ -10,6 +10,7 @@ import com.example.demo.dto.UserRequest;
 import com.example.demo.dto.UserResponse;
 import com.example.demo.model.User;
 import com.example.demo.repo.UserRepository;
+import com.example.demo.shared.exception.AccountDisabledException;
 import com.example.demo.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -40,20 +41,20 @@ public class UserService {
 
     public Optional<UserResponse> findByFirebaseUid(String firebaseUid) {
         return userRepository.findByFirebaseUid(firebaseUid)
+                .filter(user -> user.getDeletedAt() == null)
                 .map(this::toResponse);
     }
 
     @Transactional
     public UserResponse create(UserRequest request) {
-        // Check if email already exists
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("User with email " + request.email() + " already exists");
         }
 
-        // Check if firebaseUid already exists (if provided)
         if (request.firebaseUid() != null && !request.firebaseUid().isBlank()) {
             if (userRepository.findByFirebaseUid(request.firebaseUid()).isPresent()) {
-                throw new IllegalArgumentException("User with Firebase UID " + request.firebaseUid() + " already exists");
+                throw new IllegalArgumentException(
+                        "User with Firebase UID " + request.firebaseUid() + " already exists");
             }
         }
 
@@ -75,12 +76,15 @@ public class UserService {
 
     @Transactional
     public UserResponse syncWithFirebase(UserRequest request) {
-        // 1. Check if user exists by Firebase UID
         Optional<User> existingUser = userRepository.findByFirebaseUid(request.firebaseUid());
 
         if (existingUser.isPresent()) {
             User user = existingUser.get();
-            // Update details
+            if (user.getDeletedAt() != null) {
+                // Crisp practice: "Sync no debe revivir usuarios eliminados".
+                throw new AccountDisabledException("Account is deleted");
+            }
+
             boolean updated = false;
             if (request.photoUrl() != null && !request.photoUrl().equals(user.getPhotoUrl())) {
                 user.setPhotoUrl(request.photoUrl());
@@ -90,40 +94,43 @@ public class UserService {
                 user.setEmailVerified(request.emailVerified());
                 updated = true;
             }
-            
+
             if (updated) {
-               user = userRepository.save(user);
+                user = userRepository.save(user);
             }
             return toResponse(user);
         }
 
-        // 2. Check if user exists by Email (for linking accounts)
         Optional<User> userByEmail = userRepository.findByEmail(request.email());
         if (userByEmail.isPresent()) {
             User user = userByEmail.get();
+            if (user.getDeletedAt() != null) {
+                throw new AccountDisabledException("Account is deleted");
+            }
+
             user.setFirebaseUid(request.firebaseUid());
             user.setAuthProvider(request.authProvider());
-            if (request.photoUrl() != null) user.setPhotoUrl(request.photoUrl());
-            if (request.emailVerified() != null) user.setEmailVerified(request.emailVerified());
-            
+            if (request.photoUrl() != null)
+                user.setPhotoUrl(request.photoUrl());
+            if (request.emailVerified() != null)
+                user.setEmailVerified(request.emailVerified());
+
             user = userRepository.save(user);
             return toResponse(user);
         }
 
-        // 3. Create new user
         User newUser = User.builder()
                 .firstName(request.firstName())
-                .lastName(request.lastName())
+                .lastName(request.lastName() != null ? request.lastName() : "")
                 .email(request.email())
                 .firebaseUid(request.firebaseUid())
                 .authProvider(request.authProvider())
                 .emailVerified(request.emailVerified())
                 .photoUrl(request.photoUrl())
-                // Set defaults required by schema
-                .phone(request.phone() != null ? request.phone() : "") 
+                .phone(request.phone() != null ? request.phone() : "")
                 .address(request.address() != null ? request.address() : "")
                 .build();
-        
+
         User saved = userRepository.save(newUser);
         return toResponse(saved);
     }
@@ -133,18 +140,17 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
 
-        // Check if email is being changed and if it already exists
         if (!user.getEmail().equals(request.email())) {
             if (userRepository.findByEmail(request.email()).isPresent()) {
                 throw new IllegalArgumentException("User with email " + request.email() + " already exists");
             }
         }
 
-        // Check if firebaseUid is being changed and if it already exists
         if (request.firebaseUid() != null && !request.firebaseUid().isBlank()) {
             if (!request.firebaseUid().equals(user.getFirebaseUid())) {
                 if (userRepository.findByFirebaseUid(request.firebaseUid()).isPresent()) {
-                    throw new IllegalArgumentException("User with Firebase UID " + request.firebaseUid() + " already exists");
+                    throw new IllegalArgumentException(
+                            "User with Firebase UID " + request.firebaseUid() + " already exists");
                 }
             }
         }
@@ -165,10 +171,10 @@ public class UserService {
 
     @Transactional
     public void delete(Integer id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found with ID: " + id);
-        }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+        user.setDeletedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
     }
 
     private UserResponse toResponse(User user) {
@@ -183,6 +189,7 @@ public class UserService {
                 user.getAuthProvider(),
                 user.getEmailVerified(),
                 user.getPhotoUrl(),
+                user.getRole().name(),
                 user.getCreatedAt());
     }
 }

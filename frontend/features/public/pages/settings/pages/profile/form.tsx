@@ -7,6 +7,8 @@ import { AlertCircle, CheckCircle2, Pencil, Trash, Upload } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
+import { useAuthStore } from '@auth/stores/auth.store'
+
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -28,7 +30,6 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { getInitials } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
 
 const photoSchema = z.object({
   photo: z
@@ -82,7 +83,10 @@ type PhotoFormValues = z.infer<typeof photoSchema>
 type NameFormValues = z.infer<typeof nameSchema>
 
 export function ProfileForm() {
-  const { user, init, isLoadingInitial, isLoading, updateProfile } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
+  const loading = useAuthStore((s) => s.loading)
+  const isLoading = useAuthStore((s) => s.isLoading)
+  const updateProfile = useAuthStore((s) => s.updateProfile)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -108,10 +112,6 @@ export function ProfileForm() {
   const [photoError, setPhotoError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    init()
-  }, [init])
-
   const handleUploadPhoto = () => fileInputRef.current?.click()
   const handleDeletePhoto = () => {
     photoForm.setValue('photo', null)
@@ -136,13 +136,13 @@ export function ProfileForm() {
   }
 
   useEffect(() => {
-    if (user) {
-      nameForm.setValue('firstName', user.firstName || '')
-      nameForm.setValue('lastName', user.lastName || '')
-      nameForm.setValue('phone', user.phone || '')
-      nameForm.setValue('address', user.address || '')
+    if (profile) {
+      nameForm.setValue('firstName', profile.firstName || '')
+      nameForm.setValue('lastName', profile.lastName || '')
+      nameForm.setValue('phone', profile.phone || '')
+      nameForm.setValue('address', profile.address || '')
     }
-  }, [user, nameForm])
+  }, [profile, nameForm])
 
   useEffect(() => {
     if (photoValue instanceof File) {
@@ -171,13 +171,13 @@ export function ProfileForm() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex flex-col items-center relative">
         <div className="relative">
-          {isLoadingInitial ? (
+          {loading ? (
             <Skeleton className="w-32 h-32 rounded-full" />
           ) : (
             <Avatar className="w-32 h-32">
-              {avatarUrl || user?.photoUrl ? (
+              {avatarUrl || profile?.photoUrl ? (
                 <AvatarImage
-                  src={avatarUrl || user?.photoUrl || ''}
+                  src={avatarUrl || profile?.photoUrl || ''}
                   alt="Foto de perfil"
                   className="object-cover"
                 />

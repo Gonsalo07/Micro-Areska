@@ -1,12 +1,13 @@
 'use client'
 
-import { ReactNode, useEffect } from 'react'
+import { ReactNode } from 'react'
 
 import { LogIn, LucideIcon } from 'lucide-react'
 
+import { useAuthStore } from '@auth/stores/auth.store'
+
 import { EmptyState } from '@/components/shared/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuthStore } from '@/stores/auth-store'
 
 interface Props {
   children: ReactNode
@@ -23,17 +24,14 @@ export function ProtectedRoute({
   message = 'Por favor, inicia sesión para acceder a este contenido.',
   icon = LogIn,
 }: Props) {
-  const { init, user, isLoadingInitial } = useAuthStore()
+  const loading = useAuthStore((s) => s.loading)
+  const profile = useAuthStore((s) => s.profile)
 
-  useEffect(() => {
-    init()
-  }, [init])
-
-  if (isLoadingInitial) {
+  if (loading) {
     return <Skeleton className="h-96 w-full" />
   }
 
-  if (!user) {
+  if (!profile) {
     return (
       fallback || (
         <EmptyState

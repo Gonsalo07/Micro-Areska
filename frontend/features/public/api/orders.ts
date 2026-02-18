@@ -1,4 +1,4 @@
-import { apiClient } from './client'
+import { apiClient } from '@/lib/api/client'
 
 export interface OrderItem {
   id: number
@@ -53,27 +53,25 @@ export type CreateOrderPayload = {
   items: CreateOrderItem[]
 }
 
+const RESOURCE = 'orders'
+
 export const ordersApi = {
-  getByFirebaseUid: async (firebaseUid: string, token?: string): Promise<OrderResponse[]> => {
+  async getByFirebaseUid(firebaseUid: string) {
     try {
       if (!firebaseUid) {
         return []
       }
 
-      const headers: Record<string, string> = {}
-      if (token) {
-        headers.Authorization = `Bearer ${token}`
-      }
-
-      const url = `/orders/user-by-firebase-uid/${firebaseUid}`
-      const data = await apiClient.get<OrderResponse[]>(url, { headers })
+      const data = await apiClient.get<OrderResponse[]>(
+        `/${RESOURCE}/user-by-firebase-uid/${firebaseUid}`
+      )
       return data || []
     } catch {
       return []
     }
   },
 
-  createOrder: async (payload: CreateOrderPayload): Promise<OrderResponse> => {
+  async createOrder(payload: CreateOrderPayload) {
     const now = new Date()
     const limaOffset = -5 * 60
     const limaDate = new Date(now.getTime() + (now.getTimezoneOffset() + limaOffset) * 60000)
@@ -90,7 +88,7 @@ export const ordersApi = {
 
     const orderDate = limaFmt.format(limaDate)
 
-    return apiClient.post<OrderResponse>('/orders', {
+    return apiClient.post<OrderResponse>(`/${RESOURCE}`, {
       ...payload,
       orderDate,
       firebaseUid: payload.firebaseUid,
@@ -98,8 +96,7 @@ export const ordersApi = {
     })
   },
 
-  getById: async (orderId: number): Promise<OrderResponse> => {
-    const url = `/orders/${orderId}`
-    return apiClient.get<OrderResponse>(url)
+  async getById(orderId: number) {
+    return apiClient.get<OrderResponse>(`/${RESOURCE}/${orderId}`)
   },
 }

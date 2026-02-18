@@ -10,7 +10,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_PASSWORD: rootsql
       POSTGRES_DB: areska
     ports:
       - "5432:5432"
@@ -123,7 +123,7 @@ services:
       DB_PORT_USER: 5432
       DB_NAME_USER: areska
       DB_USERNAME_USER: postgres
-      DB_PASSWORD_USER: 1234
+      DB_PASSWORD_USER: rootsql
       # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-user-service
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
@@ -151,7 +151,7 @@ services:
       DB_PORT_PRODUCT: 5432
       DB_NAME_PRODUCT: areska
       DB_USERNAME_PRODUCT: postgres
-      DB_PASSWORD_PRODUCT: 1234
+      DB_PASSWORD_PRODUCT: rootsql
       # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-product-service
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
@@ -179,8 +179,7 @@ services:
       DB_PORT_CATEGORY: 5432
       DB_NAME_CATEGORY: areska
       DB_USERNAME_CATEGORY: postgres
-      DB_PASSWORD_CATEGORY: 1234
-      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      DB_PASSWORD_CATEGORY: rootsql
       SPRING_APPLICATION_NAME: areska-category-services
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
       SPRING_CLOUD_CONFIG_FAIL_FAST: true
@@ -207,7 +206,7 @@ services:
       DB_PORT_ORDER: 5432
       DB_NAME_ORDER: areska
       DB_USERNAME_ORDER: postgres
-      DB_PASSWORD_ORDER: 1234
+      DB_PASSWORD_ORDER: rootsql
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: guest
@@ -240,7 +239,7 @@ services:
       DB_PORT_PAYMENT: 5432
       DB_NAME_PAYMENT: areska
       DB_USERNAME_PAYMENT: postgres
-      DB_PASSWORD_PAYMENT: 1234
+      DB_PASSWORD_PAYMENT: rootsql
       # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-payment-service
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
@@ -268,7 +267,7 @@ services:
       DB_PORT_DELIVERY: 5432
       DB_NAME_DELIVERY: areska
       DB_USERNAME_DELIVERY: postgres
-      DB_PASSWORD_DELIVERY: 1234
+      DB_PASSWORD_DELIVERY: rootsql
       # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-delivery-service
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces

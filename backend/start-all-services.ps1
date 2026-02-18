@@ -1,7 +1,3 @@
-# Script para iniciar todos los servicios de Areska
-# Uso: .\start-all-services.ps1
-
-# Cargar variables de entorno desde .env si existe
 $envFile = Join-Path $PSScriptRoot ".env"
  $envVars = @{}
 if (Test-Path $envFile) {
@@ -16,12 +12,12 @@ if (Test-Path $envFile) {
             }
         }
     }
-    Write-Host "   ✓ Variables cargadas" -ForegroundColor Green
+    Write-Host "   [OK] Variables cargadas" -ForegroundColor Green
     Write-Host "Variables de entorno cargadas:" -ForegroundColor Cyan
     $envVars.GetEnumerator() | ForEach-Object { Write-Host ("  $($_.Key) = $($_.Value)") -ForegroundColor White }
 } else {
-    Write-Host "⚠ No se encontró archivo .env en $PSScriptRoot" -ForegroundColor Red
-    Write-Host "   Asegúrate de configurar las variables de entorno manualmente o crear el archivo .env" -ForegroundColor Yellow
+    Write-Host "[WARN] No se encontro archivo .env en $PSScriptRoot" -ForegroundColor Red
+    Write-Host "   Asegurate de configurar las variables de entorno manualmente o crear el archivo .env" -ForegroundColor Yellow
 }
 
 Write-Host "========================================" -ForegroundColor Cyan
@@ -29,46 +25,40 @@ Write-Host "  Iniciando Microservicios Areska" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Verificar RabbitMQ
 Write-Host "1. Verificando RabbitMQ..." -ForegroundColor Yellow
-# RabbitMQ se comprobará pero no se detendrá el script si falla, ya que podría estar en Docker o remoto
 try {
     $rabbitmqStatus = rabbitmqctl status 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "   ✓ RabbitMQ está corriendo" -ForegroundColor Green
+        Write-Host "   [OK] RabbitMQ esta corriendo" -ForegroundColor Green
     } else {
-        Write-Host "   ⚠ RabbitMQ no parece estar corriendo localmente (rabbitmqctl falló)." -ForegroundColor Yellow
+        Write-Host "   [WARN] RabbitMQ no parece estar corriendo localmente (rabbitmqctl fallo)." -ForegroundColor Yellow
         Write-Host "     Si usas Docker o un servicio remoto, ignora este mensaje." -ForegroundColor Gray
     }
 } catch {
-    Write-Host "   ⚠ No se pudo verificar RabbitMQ (comando no encontrado o error)." -ForegroundColor Yellow
+    Write-Host "   [WARN] No se pudo verificar RabbitMQ (comando no encontrado o error)." -ForegroundColor Yellow
 }
 
 
 Write-Host ""
 
-# Iniciar Config Server
 Write-Host "2. Iniciando Config Server (puerto 8888)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-config-server'; Write-Host 'Config Server - Puerto 8888' -ForegroundColor Cyan; ./mvnw spring-boot:run"
-Start-Sleep -Seconds 15 # Config Server tarda un poco más en iniciar
-Write-Host "   ✓ Config Server iniciado" -ForegroundColor Green
+Start-Sleep -Seconds 15
+Write-Host "   [OK] Config Server iniciado" -ForegroundColor Green
 Write-Host ""
-Write-Host "   Esperando 20 segundos para que Config Server esté listo..." -ForegroundColor Gray
+Write-Host "   Esperando 20 segundos para que Config Server este listo..." -ForegroundColor Gray
 Start-Sleep -Seconds 20
 
-# Iniciar Eureka Server
 Write-Host "3. Iniciando Eureka Server (puerto 8761)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-eureka-server'; Write-Host 'Eureka Server - Puerto 8761' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 10
-Write-Host "   ✓ Eureka Server iniciado" -ForegroundColor Green
+Write-Host "   [OK] Eureka Server iniciado" -ForegroundColor Green
 Write-Host "   Abre http://localhost:8761 para ver el dashboard" -ForegroundColor Gray
 Write-Host ""
 
-# Esperar un poco para que Eureka esté listo
-Write-Host "   Esperando 30 segundos para que Eureka esté listo..." -ForegroundColor Gray
+Write-Host "   Esperando 30 segundos para que Eureka este listo..." -ForegroundColor Gray
 Start-Sleep -Seconds 30
 
-# Iniciar servicios base
 Write-Host "4. Iniciando servicios base..." -ForegroundColor Yellow
 
 Write-Host "   - User Service (puerto 8081)..." -ForegroundColor Gray
@@ -83,47 +73,41 @@ Write-Host "   - Category Service (puerto 8084)..." -ForegroundColor Gray
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-category-services'; Write-Host 'Category Service - Puerto 8084' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 3
 
-Write-Host "   ✓ Servicios base iniciados" -ForegroundColor Green
+Write-Host "   [OK] Servicios base iniciados" -ForegroundColor Green
 Write-Host ""
 
-# Esperar un poco para que los servicios base estén listos
-Write-Host "   Esperando 20 segundos para que los servicios base estén listos..." -ForegroundColor Gray
+Write-Host "   Esperando 20 segundos para que los servicios base esten listos..." -ForegroundColor Gray
 Start-Sleep -Seconds 20
 
-# Iniciar Order Service
 Write-Host "5. Iniciando Order Service (puerto 8080)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-order-service'; Write-Host 'Order Service - Puerto 8080' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 5
-Write-Host "   ✓ Order Service iniciado" -ForegroundColor Green
+Write-Host "   [OK] Order Service iniciado" -ForegroundColor Green
 Write-Host ""
 
-# Esperar un poco para que Order Service esté listo
-Write-Host "   Esperando 15 segundos para que Order Service esté listo..." -ForegroundColor Gray
+Write-Host "   Esperando 15 segundos para que Order Service este listo..." -ForegroundColor Gray
 Start-Sleep -Seconds 15
 
-# Iniciar Payment Service
 Write-Host "6. Iniciando Payment Service (puerto 8083)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-payment-service'; Write-Host 'Payment Service - Puerto 8083' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 5
-Write-Host "   ✓ Payment Service iniciado" -ForegroundColor Green
+Write-Host "   [OK] Payment Service iniciado" -ForegroundColor Green
 Write-Host ""
 
-# Iniciar Delivery Service
 Write-Host "7. Iniciando Delivery Service (puerto 8085)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-delivery-service'; Write-Host 'Delivery Service - Puerto 8085' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 5
-Write-Host "   ✓ Delivery Service iniciado" -ForegroundColor Green
+Write-Host "   [OK] Delivery Service iniciado" -ForegroundColor Green
 Write-Host ""
 
-# Iniciar API Gateway
 Write-Host "8. Iniciando API Gateway (puerto 8090)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-gateway-service'; Write-Host 'API Gateway - Puerto 8090' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 5
-Write-Host "   ✓ API Gateway iniciado" -ForegroundColor Green
+Write-Host "   [OK] API Gateway iniciado" -ForegroundColor Green
 Write-Host ""
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Todos los servicios están iniciando" -ForegroundColor Cyan
+Write-Host "  Todos los servicios estan iniciando" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Verifica el estado en:" -ForegroundColor Yellow

@@ -13,7 +13,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth'
 
-import { usersApi } from '@/lib/api/users'
+import { usersApi } from '@public/api/users'
 
 import { getAuthClient, getGithubProvider, getGoogleProvider } from './client'
 
@@ -41,7 +41,6 @@ function detectProviderFromUser(u: FirebaseUser, fallback: string): string {
 }
 
 async function syncUserToBackend(u: FirebaseUser, authProvider: string, maxRetries = 3) {
-  const token = await u.getIdToken()
   const { firstName, lastName } = splitName(u.displayName ?? undefined)
   const payload = {
     firebaseUid: u.uid,
@@ -55,22 +54,13 @@ async function syncUserToBackend(u: FirebaseUser, authProvider: string, maxRetri
 
   if (!payload.email) return
 
-  //('[AuthLib] syncUserToBackend: Payload:', payload)
-
   let lastError: unknown
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    //console.log(`[AuthLib] syncUserToBackend: Intento ${attempt + 1}/${maxRetries}...`)
     try {
-      await usersApi.syncWithFirebase(payload, token)
-      //console.log('[AuthLib] syncUserToBackend: POST exitoso.')
-
-      try {
-        const user = await usersApi.getByFirebaseUid(u.uid, token)
-        if (user?.id) {
-          //console.log('[AuthLib] syncUserToBackend: Verificación GET exitosa.')
-          return
-        }
-      } catch {}
+      const synced = await usersApi.syncWithFirebase(payload)
+      if (synced?.id) {
+        return
+      }
     } catch (err) {
       console.warn(`[AuthLib] syncUserToBackend: Error en intento ${attempt + 1}:`, err)
       lastError = err
@@ -114,16 +104,12 @@ export async function signupWithEmail(
 }
 
 export async function loginWithGoogle(): Promise<FirebaseUser> {
-  //console.log('[AuthLib] loginWithGoogle: Iniciando signInWithPopup...')
   const auth = getAuthClient()
   const cred = await signInWithPopup(auth, getGoogleProvider())
-  //console.log('[AuthLib] loginWithGoogle: Popup cerrado. Usuario:', cred.user.uid)
-  
+
   const u = cred.user
-  //console.log('[AuthLib] loginWithGoogle: Iniciando syncUserToBackend...')
   await syncUserToBackend(u, 'google')
-  //console.log('[AuthLib] loginWithGoogle: syncUserToBackend finalizado.')
-  
+
   return u
 }
 

@@ -3,8 +3,10 @@ import { Inter } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import NextTopLoader from 'nextjs-toploader'
 
+import { AuthStoreInitializer } from '@/components/shared/auth-store-initializer'
 import { ThemeScript } from '@/components/shared/theme-script'
 import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 import './globals.css'
 
@@ -49,9 +51,11 @@ export default function RootLayout({
           disableTransitionOnChange
           enableColorScheme
         >
-          <NextTopLoader color="var(--primary)" height={2} easing="linear" showSpinner={false} />
+          <NextTopLoader color="var(--primary)" height={3} easing="linear" showSpinner={false} />
           <Toaster />
-          {children}
+          <TooltipProvider>
+            <AuthStoreInitializer>{children}</AuthStoreInitializer>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
