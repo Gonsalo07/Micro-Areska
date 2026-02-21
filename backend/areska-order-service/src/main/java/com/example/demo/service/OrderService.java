@@ -152,6 +152,48 @@ public class OrderService {
         if (req.getStatus() != null && !req.getStatus().isBlank())
             order.setStatus(req.getStatus());
         
+        if (req.getDeliveryStatus() != null && !req.getDeliveryStatus().isBlank()) {
+            order.setDeliveryStatus(req.getDeliveryStatus());
+            
+            // Actualizar timestamps basados en el estado de entrega
+            switch (req.getDeliveryStatus()) {
+                case "ASSIGNED":
+                    if (order.getAssignedAt() == null) {
+                        order.setAssignedAt(java.time.LocalDateTime.now());
+                    }
+                    break;
+                case "ACCEPTED":
+                    if (order.getAcceptedAt() == null) {
+                        order.setAcceptedAt(java.time.LocalDateTime.now());
+                    }
+                    break;
+                case "OUT_FOR_DELIVERY":
+                    if (order.getOutForDeliveryAt() == null) {
+                        order.setOutForDeliveryAt(java.time.LocalDateTime.now());
+                    }
+                    break;
+                case "ARRIVED":
+                    if (order.getArrivedAt() == null) {
+                        order.setArrivedAt(java.time.LocalDateTime.now());
+                    }
+                    break;
+                case "DELIVERED":
+                    if (order.getDeliveredAt() == null) {
+                        order.setDeliveredAt(java.time.LocalDateTime.now());
+                    }
+                    break;
+                case "CANCELLED":
+                    if (order.getCancelledAt() == null) {
+                        order.setCancelledAt(java.time.LocalDateTime.now());
+                    }
+                    break;
+            }
+        }
+        
+        if (req.getDeliveryDriverId() != null) {
+            order.setDeliveryDriverId(req.getDeliveryDriverId());
+        }
+        
         return toResponse(orderRepository.save(order));
     }
 
@@ -181,10 +223,19 @@ public class OrderService {
         return new OrderResponse(
                 o.getId(),
                 o.getUserId(),
+                o.getDeliveryDriverId(),
                 o.getOrderDate(),
                 o.getStatus(),
+                o.getDeliveryStatus(),
                 o.getTotal(),
                 o.getPickupMethod(),
+                o.getAssignedAt(),
+                o.getAcceptedAt(),
+                o.getOutForDeliveryAt(),
+                o.getArrivedAt(),
+                o.getDeliveredAt(),
+                o.getCancelledAt(),
+                o.getUpdatedAt(),
                 items);
     }
 }

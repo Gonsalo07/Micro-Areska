@@ -165,33 +165,6 @@ services:
     networks:
       - areska-network
 
-  category-service:
-    build: 
-      context: ./areska-category-services
-      dockerfile: Dockerfile
-    container_name: category-service
-    ports:
-      - "8084:8084"
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URI: http://eureka-server:8761/eureka/
-      DB_HOST_CATEGORY: postgres
-      DB_PORT_CATEGORY: 5432
-      DB_NAME_CATEGORY: areska
-      DB_USERNAME_CATEGORY: postgres
-      DB_PASSWORD_CATEGORY: rootsql
-      SPRING_APPLICATION_NAME: areska-category-services
-      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
-      SPRING_CLOUD_CONFIG_FAIL_FAST: true
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
-      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
-    depends_on:
-      - config-server
-      - eureka-server
-      - postgres
-    networks:
-      - areska-network
-
   order-service:
     build: 
       context: ./areska-order-service
