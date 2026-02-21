@@ -1,5 +1,9 @@
 package com.example.demo.model;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,29 +14,37 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "delivery_driver_notifications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Category {
+public class DeliveryDriverNotification {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @Column(name = "delivery_driver_id", nullable = false)
+    private Integer deliveryDriverId;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String slug;
+    @Column(length = 150)
+    private String title;
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String message;
+
+    @Column(length = 50)
+    private String type;
+
+    @Column(name = "related_order_id")
+    private Integer relatedOrderId;
+
+    @Column(name = "is_read")
+    @Builder.Default
+    private Boolean isRead = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -69,10 +69,6 @@ Write-Host "   - Product Service (puerto 8082)..." -ForegroundColor Gray
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-product-service'; Write-Host 'Product Service - Puerto 8082' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 3
 
-Write-Host "   - Category Service (puerto 8084)..." -ForegroundColor Gray
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-category-services'; Write-Host 'Category Service - Puerto 8084' -ForegroundColor Cyan; ./mvnw spring-boot:run"
-Start-Sleep -Seconds 3
-
 Write-Host "   [OK] Servicios base iniciados" -ForegroundColor Green
 Write-Host ""
 
@@ -116,8 +112,7 @@ Write-Host "  - RabbitMQ Management: http://localhost:15672" -ForegroundColor Wh
 Write-Host ""
 Write-Host "Swagger UI de cada servicio:" -ForegroundColor Yellow
 Write-Host "  - User: http://localhost:8081/swagger-ui.html" -ForegroundColor White
-Write-Host "  - Product: http://localhost:8082/swagger-ui.html" -ForegroundColor White
-Write-Host "  - Category: http://localhost:8084/swagger-ui.html" -ForegroundColor White
+Write-Host "  - Product: http://localhost:8082/swagger-ui.html (incluye Categories)" -ForegroundColor White
 Write-Host "  - Order: http://localhost:8080/swagger-ui.html" -ForegroundColor White
 Write-Host "  - Payment: http://localhost:8083/swagger-ui.html" -ForegroundColor White
 Write-Host "  - Delivery: http://localhost:8085/swagger-ui.html" -ForegroundColor White

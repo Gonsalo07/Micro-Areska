@@ -15,10 +15,20 @@ export interface OrderItem {
 export interface OrderResponse {
   id: number
   userId: number
+  orderCode: string
   orderDate: string
   status: string
   total: number
   pickupMethod: string
+  deliveryDriverId?: number
+  deliveryStatus?: string
+  assignedAt?: string
+  acceptedAt?: string
+  outForDeliveryAt?: string
+  arrivedAt?: string
+  deliveredAt?: string
+  cancelledAt?: string
+  updatedAt?: string
   items: OrderItem[]
 }
 

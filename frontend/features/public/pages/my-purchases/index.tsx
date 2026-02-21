@@ -2,34 +2,14 @@
 
 import { useEffect, useState } from 'react'
 
-import { Store } from 'lucide-react'
+import { Store, Truck } from 'lucide-react'
 
 import { useAuthStore } from '@auth/stores/auth.store'
-import { ordersApi } from '@public/api/orders'
-
-type OrderItem = {
-  id: number
-  product: {
-    id: number
-    name: string
-  }
-  quantity: number
-  unitPrice: number
-  priceTotal: number
-}
-
-type Order = {
-  id: number
-  orderDate: string
-  total: number
-  status: string
-  pickupMethod: string
-  items: OrderItem[]
-}
+import { ordersApi, type OrderResponse } from '@public/api/orders'
 
 export function MyPurchasesPage() {
   const profile = useAuthStore((s) => s.profile)
-  const [orders, setOrders] = useState<Order[]>([])
+  const [orders, setOrders] = useState<OrderResponse[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -110,6 +90,41 @@ export function MyPurchasesPage() {
                 <span className="text-green-400 font-medium">${order.total.toFixed(2)}</span>
               </p>
             </div>
+
+            {order.pickupMethod === 'shipping' && order.deliveryStatus && (
+              <div className="mt-3 p-3 bg-indigo-900/20 border border-indigo-800/40 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="h-4 w-4 text-indigo-400" />
+                  <span className="text-sm font-medium text-indigo-300">Estado de Entrega</span>
+                </div>
+                <p className="text-gray-300 text-sm">
+                  <span className="text-gray-400">Estado:</span>{' '}
+                  <span className="font-medium">{order.deliveryStatus}</span>
+                </p>
+                {order.assignedAt && (
+                  <p className="text-gray-400 text-xs mt-1">Asignado: {order.assignedAt}</p>
+                )}
+                {order.acceptedAt && (
+                  <p className="text-gray-400 text-xs">Aceptado: {order.acceptedAt}</p>
+                )}
+                {order.outForDeliveryAt && (
+                  <p className="text-gray-400 text-xs">En camino: {order.outForDeliveryAt}</p>
+                )}
+                {order.arrivedAt && (
+                  <p className="text-gray-400 text-xs">Llegó: {order.arrivedAt}</p>
+                )}
+                {order.deliveredAt && (
+                  <p className="text-green-400 text-xs font-medium">
+                    Entregado: {order.deliveredAt}
+                  </p>
+                )}
+                {order.cancelledAt && (
+                  <p className="text-red-400 text-xs font-medium">
+                    Cancelado: {order.cancelledAt}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="mt-4">
               <h3 className="text-gray-200 font-semibold">Productos:</h3>
