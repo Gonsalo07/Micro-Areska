@@ -58,6 +58,13 @@ public class DeliveryDriverController {
         return ResponseEntity.ok(new ApiSuccess<>("Delivery driver found", driver));
     }
 
+    @PostMapping("/firebase/sync")
+    @Operation(summary = "Sync a delivery driver with Firebase (create or update)")
+    public ResponseEntity<ApiSuccess<DeliveryDriverResponse>> syncWithFirebase(@Valid @RequestBody DeliveryDriverRequest request) {
+        DeliveryDriverResponse driver = deliveryDriverService.syncWithFirebase(request);
+        return ResponseEntity.ok(new ApiSuccess<>("Delivery driver synced successfully", driver));
+    }
+
     @GetMapping("/available")
     @Operation(summary = "Get all available and active delivery drivers")
     public ResponseEntity<ApiSuccess<List<DeliveryDriverResponse>>> getAvailableDrivers() {

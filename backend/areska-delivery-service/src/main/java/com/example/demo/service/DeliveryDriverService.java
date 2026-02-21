@@ -46,6 +46,30 @@ public class DeliveryDriverService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public DeliveryDriverResponse syncWithFirebase(DeliveryDriverRequest request) {
+        // Check if driver already exists by Firebase UID
+        return deliveryDriverRepository.findByFirebaseUid(request.firebaseUid())
+                .map(existing -> {
+                    // Update existing driver
+                    if (request.fullName() != null) existing.setFullName(request.fullName());
+                    if (request.phone() != null) existing.setPhone(request.phone());
+                    if (request.email() != null) existing.setEmail(request.email());
+                    if (request.authProvider() != null) existing.setAuthProvider(request.authProvider());
+                    if (request.emailVerified() != null) existing.setEmailVerified(request.emailVerified());
+                    if (request.photoUrl() != null) existing.setPhotoUrl(request.photoUrl());
+                    
+                    DeliveryDriver updated = deliveryDriverRepository.save(existing);
+                    log.info("Delivery driver synced (updated) with Firebase UID: {}", request.firebaseUid());
+                    return toResponse(updated);
+                })
+                .orElseGet(() -> {
+                    // Create new driver
+                    log.info("Creating new delivery driver from Firebase sync: {}", request.firebaseUid());
+                    return create(request);
+                });
+    }
+
     public List<DeliveryDriverResponse> getAll() {
         return deliveryDriverRepository.findAll().stream()
                 .map(this::toResponse)

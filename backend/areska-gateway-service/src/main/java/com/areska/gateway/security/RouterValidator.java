@@ -15,7 +15,8 @@ public class RouterValidator {
             "/api/categories",
             "/api/auth",
             "/eureka",
-            "/api/users/firebase/sync"
+            "/api/users/firebase/sync",
+            "/api/delivery-drivers/firebase/sync"
         );
 
     public Predicate<ServerHttpRequest> isSecured =
@@ -40,6 +41,10 @@ public class RouterValidator {
         }
 
         if (path.contains("/api/users/firebase/sync") && method == HttpMethod.POST) {
+            return true;
+        }
+
+        if (path.contains("/api/delivery-drivers/firebase/sync") && method == HttpMethod.POST) {
             return true;
         }
 

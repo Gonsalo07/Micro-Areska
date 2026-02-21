@@ -269,6 +269,7 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:8090}
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON}
       FIREBASE_CONFIG_PATH: /app/firebase-service-account.json
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
