@@ -39,8 +39,7 @@ public class UserController {
         ApiSuccess<List<UserResponse>> response = new ApiSuccess<>(
                 users.isEmpty() ? "No users found" : "Users listed successfully",
                 users);
-        HttpStatus status = users.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -118,8 +117,8 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a user by ID")
-    public ResponseEntity<?> delete(@Min(1) @PathVariable Integer id) {
+    public ResponseEntity<ApiSuccess<Void>> delete(@Min(1) @PathVariable Integer id) {
         userService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ApiSuccess<>("User deleted successfully", null));
     }
 }

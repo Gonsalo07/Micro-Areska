@@ -40,8 +40,7 @@ public class DeliveryDriverController {
         ApiSuccess<List<DeliveryDriverResponse>> response = new ApiSuccess<>(
                 drivers.isEmpty() ? "No delivery drivers found" : "Delivery drivers listed successfully",
                 drivers);
-        HttpStatus status = drivers.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -72,8 +71,7 @@ public class DeliveryDriverController {
         ApiSuccess<List<DeliveryDriverResponse>> response = new ApiSuccess<>(
                 drivers.isEmpty() ? "No available drivers found" : "Available drivers listed successfully",
                 drivers);
-        HttpStatus status = drivers.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/company/{companyName}")
@@ -83,8 +81,7 @@ public class DeliveryDriverController {
         ApiSuccess<List<DeliveryDriverResponse>> response = new ApiSuccess<>(
                 drivers.isEmpty() ? "No drivers found for this company" : "Drivers listed successfully",
                 drivers);
-        HttpStatus status = drivers.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
@@ -105,8 +102,8 @@ public class DeliveryDriverController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Soft delete a delivery driver by ID")
-    public ResponseEntity<?> delete(@Min(1) @PathVariable Integer id) {
+    public ResponseEntity<ApiSuccess<Void>> delete(@Min(1) @PathVariable Integer id) {
         deliveryDriverService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ApiSuccess<>("Delivery driver deleted successfully", null));
     }
 }

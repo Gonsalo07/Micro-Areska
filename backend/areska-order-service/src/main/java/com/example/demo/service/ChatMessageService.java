@@ -3,6 +3,7 @@ package com.example.demo.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final OrderRepository orderRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * Obtener todos los mensajes de un order específico
@@ -79,11 +81,15 @@ public class ChatMessageService {
                 .build();
         
         ChatMessage savedMessage = chatMessageRepository.save(message);
+        ChatMessageResponse response = toResponse(savedMessage);
         
-        log.info("Message sent for order ID: {} by {} (ID: {})", 
+        // Enviar notificación por WebSocket a todos los subscriptores del topic de la orden
+        messagingTemplate.convertAndSend("/topic/chat/" + request.getOrderId(), response);
+        
+        log.info("Message sent for order ID: {} by {} (ID: {}) and broadcasted via WebSocket", 
                 request.getOrderId(), request.getSenderType(), request.getSenderId());
         
-        return toResponse(savedMessage);
+        return response;
     }
 
     /**

@@ -34,19 +34,19 @@ public class OrderController {
 
     @GetMapping
     @Operation(summary = "List all orders")
-    public ResponseEntity<?> list() {
+    public ResponseEntity<ApiSuccess<List<OrderResponse>>> list() {
         List<OrderResponse> orders = orderService.getList();
-        if (orders.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-        }
-        return ResponseEntity.ok(orders);
+        ApiSuccess<List<OrderResponse>> response = new ApiSuccess<>(
+                orders.isEmpty() ? "No orders found" : "Orders listed successfully",
+                orders);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get an order by ID (with items)")
-    public ResponseEntity<OrderResponse> get(@Min(1) @PathVariable Integer id) {
+    public ResponseEntity<ApiSuccess<OrderResponse>> get(@Min(1) @PathVariable Integer id) {
         OrderResponse order = orderService.getDetailById(id);
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(new ApiSuccess<>("Order found", order));
     }
 
     @GetMapping("/user-by-firebase-uid/{firebaseUid}")
@@ -56,32 +56,30 @@ public class OrderController {
         ApiSuccess<List<OrderResponse>> response = new ApiSuccess<>(
                 orders.isEmpty() ? "No orders found" : "Orders listed successfully",
                 orders);
-
-        HttpStatus status = orders.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "List all orders for a specific user")
-    public ResponseEntity<?> getByUser(@Min(1) @PathVariable Integer userId) {
+    public ResponseEntity<ApiSuccess<List<OrderResponse>>> getByUser(@Min(1) @PathVariable Integer userId) {
         List<OrderResponse> orders = orderService.getOrdersByUserId(userId);
-        if (orders.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-        }
-        return ResponseEntity.ok(orders);
+        ApiSuccess<List<OrderResponse>> response = new ApiSuccess<>(
+                orders.isEmpty() ? "No orders found" : "Orders listed successfully",
+                orders);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
     @Operation(summary = "Create a new order")
-    public ResponseEntity<?> create(@Valid @RequestBody OrderCreateRequest request) {
+    public ResponseEntity<ApiSuccess<OrderResponse>> create(@Valid @RequestBody OrderCreateRequest request) {
         OrderResponse created = orderService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiSuccess<>("Order created successfully", created));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update an order status method")
-    public ResponseEntity<?> update(@Min(1) @PathVariable Integer id, @Valid @RequestBody OrderUpdateRequest request) {
+    public ResponseEntity<ApiSuccess<OrderResponse>> update(@Min(1) @PathVariable Integer id, @Valid @RequestBody OrderUpdateRequest request) {
         OrderResponse updated = orderService.update(id, request);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(new ApiSuccess<>("Order updated successfully", updated));
     }
 }

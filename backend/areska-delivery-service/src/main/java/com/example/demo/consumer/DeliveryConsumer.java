@@ -1,19 +1,22 @@
 package com.example.demo.consumer;
 
+import java.math.BigDecimal;
+
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.DeliveryRequest;
+import com.example.demo.dto.OrderDeliveryDetailRequest;
+import com.example.demo.service.OrderDeliveryDetailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Este consumer ha sido deshabilitado porque el modelo de delivery cambió.
- * Ahora los delivery drivers se asignan directamente a las órdenes en la tabla orders.
- * Si necesitas procesar asignaciones de delivery, considera actualizar este consumer
- * para trabajar con el nuevo modelo DeliveryDriver.
+ * Consumer de RabbitMQ para procesar solicitudes de delivery.
+ * Cuando order-service crea una orden con pickup_method='delivery',
+ * envía un mensaje a la cola y este consumer crea el OrderDeliveryDetail.
  */
 @Component
 @RequiredArgsConstructor
@@ -21,14 +24,27 @@ import lombok.extern.slf4j.Slf4j;
 public class DeliveryConsumer {
 
     private final ObjectMapper objectMapper;
+    private final OrderDeliveryDetailService orderDeliveryDetailService;
 
-    // @RabbitListener(queues = "${delivery.queue.name:delivery.orders.queue}")
+    @RabbitListener(queues = "${delivery.queue.name:delivery.orders.queue}")
     public void receiveDeliveryRequest(String message) {
         try {
             log.info("Received delivery request: {}", message);
             DeliveryRequest request = objectMapper.readValue(message, DeliveryRequest.class);
-            // TODO: Implementar lógica para asignar un delivery driver disponible a la orden
-            log.info("Delivery request received for order ID: {}", request.orderId());
+            
+            // Crear el detalle de entrega
+            OrderDeliveryDetailRequest detailRequest = OrderDeliveryDetailRequest.builder()
+                    .orderId(request.orderId())
+                    .customerName(request.customerName())
+                    .customerPhone(request.customerPhone())
+                    .destinationAddress(request.deliveryAddress())
+                    .customerNotes(request.notes())
+                    .build();
+            
+            var created = orderDeliveryDetailService.create(detailRequest);
+            log.info("Created delivery detail ID: {} for order ID: {} (Customer: {})", 
+                    created.id(), request.orderId(), request.customerName());
+            
         } catch (Exception e) {
             log.error("Error processing delivery request: {}", e.getMessage(), e);
         }

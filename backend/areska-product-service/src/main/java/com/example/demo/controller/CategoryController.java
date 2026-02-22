@@ -30,9 +30,7 @@ public class CategoryController {
         ApiSuccess<List<CategoryResponse>> response = new ApiSuccess<>(
                 categories.isEmpty() ? "No categories found" : "Categories listed successfully",
                 categories);
-
-        HttpStatus status = categories.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

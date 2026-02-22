@@ -16,6 +16,7 @@ import com.example.demo.dto.response.OrderDetailReponse;
 import com.example.demo.dto.response.OrderResponse;
 import com.example.demo.model.Order;
 import com.example.demo.model.OrderDetails;
+import com.example.demo.model.OrderStatus;
 import com.example.demo.producer.DeliveryProducer;
 import com.example.demo.repo.OrderDetailsRepository;
 import com.example.demo.repo.OrderRepository;
@@ -24,7 +25,19 @@ import com.example.demo.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-
+/**
+ * Servicio de órdenes
+ * 
+ * Estados de orden (status):
+ *   - pending    : Pedido recién creado
+ *   - confirmed  : Pedido confirmado
+ *   - preparing  : En preparación
+ *   - ready      : Listo para entrega/recogida
+ *   - completed  : Completado
+ *   - cancelled  : Cancelado
+ * 
+ * Nota: Los estados de entrega se manejan en delivery-service (order_delivery_details)
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -74,7 +87,7 @@ public class OrderService {
     @Transactional
     public OrderResponse create(OrderCreateRequest req) {
         // Validar que el usuario existe usando Feign
-        userServiceClient.findUserById(req.getUserId())
+        var user = userServiceClient.findUserById(req.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + req.getUserId()));
 
         Order order = Order.builder()
@@ -124,14 +137,21 @@ public class OrderService {
             // Enviar a la cola de delivery si el método de entrega es "delivery"
             if ("delivery".equalsIgnoreCase(req.getPickupMethod()) && req.getDeliveryAddress() != null) {
                 try {
+                    String customerName = (user.firstName() != null ? user.firstName() : "") + 
+                                         (user.lastName() != null ? " " + user.lastName() : "");
+                    customerName = customerName.trim().isEmpty() ? "Cliente" : customerName.trim();
+                    
                     DeliveryRequest deliveryRequest = new DeliveryRequest(
                             savedOrder.getId(),
                             req.getUserId(),
+                            customerName,
+                            user.phone(),
                             req.getDeliveryAddress(),
                             null
                     );
                     deliveryProducer.sendDeliveryRequest(deliveryRequest);
-                    log.info("Delivery request sent to queue for order ID: {}", savedOrder.getId());
+                    log.info("Delivery request sent to queue for order ID: {} (Customer: {})", 
+                            savedOrder.getId(), customerName);
                 } catch (Exception e) {
                     log.error("Failed to send delivery request to queue: {}", e.getMessage());
                     // No lanzamos excepción para que la orden se cree igual
@@ -149,49 +169,15 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
 
-        if (req.getStatus() != null && !req.getStatus().isBlank())
-            order.setStatus(req.getStatus());
-        
-        if (req.getDeliveryStatus() != null && !req.getDeliveryStatus().isBlank()) {
-            order.setDeliveryStatus(req.getDeliveryStatus());
-            
-            // Actualizar timestamps basados en el estado de entrega
-            switch (req.getDeliveryStatus()) {
-                case "ASSIGNED":
-                    if (order.getAssignedAt() == null) {
-                        order.setAssignedAt(java.time.LocalDateTime.now());
-                    }
-                    break;
-                case "ACCEPTED":
-                    if (order.getAcceptedAt() == null) {
-                        order.setAcceptedAt(java.time.LocalDateTime.now());
-                    }
-                    break;
-                case "OUT_FOR_DELIVERY":
-                    if (order.getOutForDeliveryAt() == null) {
-                        order.setOutForDeliveryAt(java.time.LocalDateTime.now());
-                    }
-                    break;
-                case "ARRIVED":
-                    if (order.getArrivedAt() == null) {
-                        order.setArrivedAt(java.time.LocalDateTime.now());
-                    }
-                    break;
-                case "DELIVERED":
-                    if (order.getDeliveredAt() == null) {
-                        order.setDeliveredAt(java.time.LocalDateTime.now());
-                    }
-                    break;
-                case "CANCELLED":
-                    if (order.getCancelledAt() == null) {
-                        order.setCancelledAt(java.time.LocalDateTime.now());
-                    }
-                    break;
+        // Validar y actualizar status usando el enum
+        if (req.getStatus() != null && !req.getStatus().isBlank()) {
+            try {
+                OrderStatus.fromValue(req.getStatus()); // Valida que sea un estado válido
+                order.setStatus(req.getStatus());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid order status: " + req.getStatus() + 
+                    ". Valid values: pending, confirmed, preparing, ready, completed, cancelled");
             }
-        }
-        
-        if (req.getDeliveryDriverId() != null) {
-            order.setDeliveryDriverId(req.getDeliveryDriverId());
         }
         
         return toResponse(orderRepository.save(order));
@@ -223,18 +209,10 @@ public class OrderService {
         return new OrderResponse(
                 o.getId(),
                 o.getUserId(),
-                o.getDeliveryDriverId(),
                 o.getOrderDate(),
                 o.getStatus(),
-                o.getDeliveryStatus(),
                 o.getTotal(),
                 o.getPickupMethod(),
-                o.getAssignedAt(),
-                o.getAcceptedAt(),
-                o.getOutForDeliveryAt(),
-                o.getArrivedAt(),
-                o.getDeliveredAt(),
-                o.getCancelledAt(),
                 o.getUpdatedAt(),
                 items);
     }

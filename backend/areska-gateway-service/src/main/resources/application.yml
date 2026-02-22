@@ -1,73 +1,21 @@
+# =====================================================
+# CONFIGURACIÓN MÍNIMA - El resto viene del Config Server
+# Ver: config-repo/areska-gateway-service.yml
+# =====================================================
 server:
-  port: 8090
+  port: ${PORT:8090}
 
 spring:
   application:
     name: areska-gateway-service
-  cloud:
-    gateway:
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:8090}
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            exposedHeaders:
-              - "X-Firebase-UiD"
-              - "X-Firebase-Email"
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
-      default-filters:
-        - AuthenticationFilter
-      routes:
-        - id: category-service
-          uri: lb://ARESKA-CATEGORY-SERVICES
-          predicates:
-            - Path=/api/categories/**
-          filters:
-            - StripPrefix=1
-        - id: delivery-service
-          uri: lb://ARESKA-DELIVERY-SERVICE
-          predicates:
-            - Path=/api/deliveries/**
-          filters:
-            - StripPrefix=1
-        - id: order-service
-          uri: lb://ARESKA-ORDER-SERVICE
-          predicates:
-            - Path=/api/orders/**
-          filters:
-            - StripPrefix=1
-        - id: payment-service
-          uri: lb://ARESKA-PAYMENT-SERVICE
-          predicates:
-            - Path=/api/payments/**
-          filters:
-            - StripPrefix=1
-        - id: product-service
-          uri: lb://ARESKA-PRODUCT-SERVICE
-          predicates:
-            - Path=/api/products/**
-          filters:
-            - StripPrefix=1
-        - id: user-service
-          uri: lb://ARESKA-USER-SERVICE
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - StripPrefix=1
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
 
+# Firebase - Variables de entorno
 firebase:
   credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
 
+# Eureka - Para desarrollo local
 eureka:
   client:
     service-url:
