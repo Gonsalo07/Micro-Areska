@@ -40,8 +40,7 @@ public class ProductController {
         ApiSuccess<List<ProductResponse>> response = new ApiSuccess<>(
                 products.isEmpty() ? "No products found" : "Products listed successfully",
                 products);
-        HttpStatus status = products.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -58,8 +57,7 @@ public class ProductController {
         ApiSuccess<List<ProductResponse>> response = new ApiSuccess<>(
                 products.isEmpty() ? "No products found for this category" : "Products listed successfully",
                 products);
-        HttpStatus status = products.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/available")
@@ -69,8 +67,7 @@ public class ProductController {
         ApiSuccess<List<ProductResponse>> response = new ApiSuccess<>(
                 products.isEmpty() ? "No available products found" : "Available products listed successfully",
                 products);
-        HttpStatus status = products.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
@@ -99,8 +96,8 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a product by ID")
-    public ResponseEntity<?> delete(@Min(1) @PathVariable Integer id) {
+    public ResponseEntity<ApiSuccess<Void>> delete(@Min(1) @PathVariable Integer id) {
         productService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ApiSuccess<>("Product deleted successfully", null));
     }
 }

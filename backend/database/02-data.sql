@@ -284,19 +284,25 @@ INSERT INTO product_features (product_id, feature_text, display_order) VALUES
 (12, 'Vibración HD', 3),
 (12, 'Compatible PC/consolas', 4);
 
-INSERT INTO users (first_name, last_name, email, phone, address, firebase_uid, auth_provider, email_verified, photo_url, role) VALUES
-('Alejandro', 'Vargas', 'alejandro.vargas@mail.com', '555-1001', 'Av. Gamer 123, Ciudad A', NULL, 'password', TRUE, NULL, 'ADMIN'),
-('Belen', 'Quiroga', 'belen.quiroga@mail.com', '555-1002', 'Calle RGB 45, Ciudad B', NULL, 'password', TRUE, NULL, 'CLIENTE'),
-('Carlos', 'Molina', 'carlos.molina@mail.com', '555-1003', 'Jirón Pixel 678, Ciudad C', NULL, 'password', TRUE, NULL, 'CLIENTE'),
-('Daniela', 'Flores', 'daniela.flores@mail.com', '555-1004', 'Pasaje E-Sports 90, Ciudad D', NULL, 'password', TRUE, NULL, 'CLIENTE'),
-('Emilio', 'Gutiérrez', 'emilio.gutierrez@mail.com', '555-1005', 'Av. Latencia 101, Ciudad A', NULL, 'password', TRUE, NULL, 'CLIENTE');
+INSERT INTO users (first_name, last_name, email, phone, address, firebase_uid, auth_provider, email_verified, photo_url) VALUES
+('Alejandro', 'Vargas', 'alejandro.vargas@mail.com', '555-1001', 'Av. Gamer 123, Ciudad A', 'quKJk8AA34UTFsrjqizcJ0nAAJi1', 'password', TRUE, NULL),
+('Belen', 'Quiroga', 'belen.quiroga@mail.com', '555-1002', 'Calle RGB 45, Ciudad B', 'TaZ1qsBqoUXjUIUoDtIHgY3YnHz2', 'password', TRUE, NULL),
+('Carlos', 'Molina', 'carlos.molina@mail.com', '555-1003', 'Jirón Pixel 678, Ciudad C', 'qbO21IX9ywhQhHdWxbfn4KflHf73', 'password', TRUE, NULL),
+('Daniela', 'Flores', 'daniela.flores@mail.com', '555-1004', 'Pasaje E-Sports 90, Ciudad D', 'aDsGr1wuKGOIqS3HplCcKl5DRFd2', 'password', TRUE, NULL),
+('Emilio', 'Gutiérrez', 'emilio.gutierrez@mail.com', '555-1005', 'Av. Latencia 101, Ciudad A', 'eYBD6sICicXZPyv2GMlHzYv1XRx1', 'password', TRUE, NULL),
+('Jason', 'Vila', 'jasonvila2007@gmail.com', '555-1006', 'Calle Backend 321, Ciudad E', 'sYKxbgGQchMDez7mOPdkskp0WPl1', 'password', TRUE, NULL),
+('Jason', 'Vila', 'jasonvila2007s@gmail.com', '555-1007', 'Av. Microservicios 654, Ciudad F', 'x5tPw1mOhWNIfLQnyVoxND2QZms1', 'password', TRUE, NULL),
+('Andy', 'GP06002423', 'andygp06002423@gmail.com', '555-1008', 'Jirón API 777, Ciudad G', 'U2Nq2MDhBmOeGQgfkbQArRUSKm02', 'password', TRUE, NULL),
+('Andy', 'GP0600209', 'andygp0600209@gmail.com', '555-1009', 'Pasaje Gateway 888, Ciudad H', 'fziJoIm8IbWjKdtADVaPUgFrLUs2', 'password', TRUE, NULL),
+('Andy', 'GP06002', 'andygp06002@gmail.com', '555-1010', 'Av. Node 999, Ciudad I', 'ya9aV8mYYudRHBDLCq66jGDrFSF3', 'password', TRUE, NULL),
+('Juan Jose', 'Blas', 'juanjoseblas345@gmail.com', '555-1011', 'Calle React 222, Ciudad J', 'mwup6yI9VTSuP1v6hBV3UXRPYO53', 'password', TRUE, NULL);
 
 INSERT INTO orders (user_id, order_date, status, total, pickup_method) VALUES
-(1, '2024-10-01 10:00:00', 'completed', 239.98, 'shipping'),
+(1, '2024-10-01 10:00:00', 'completed', 239.98, 'delivery'),
 (2, '2024-10-02 11:30:00', 'completed', 179.99, 'store'),
-(3, '2024-10-03 14:45:00', 'pending', 459.98, 'shipping'),
-(4, '2024-10-04 16:00:00', 'shipped', 89.99, 'store'),
-(5, '2024-10-05 09:15:00', 'completed', 299.99, 'shipping');
+(3, '2024-10-03 14:45:00', 'pending', 459.98, 'delivery'),
+(4, '2024-10-04 16:00:00', 'confirmed', 89.99, 'store'),
+(5, '2024-10-05 09:15:00', 'completed', 299.99, 'delivery');
 
 INSERT INTO order_details (order_id, product_id, quantity, unit_price) VALUES
 (1, 1, 1, 149.99),

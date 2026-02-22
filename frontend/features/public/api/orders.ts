@@ -1,12 +1,11 @@
 import { apiClient } from '@/lib/api/client'
+import type { OrderStatus } from '@/lib/constants/order-status'
 
 export interface OrderItem {
   id: number
   orderId: number
-  product: {
-    id: number
-    name: string
-  }
+  productId: number
+  productName: string
   quantity: number
   unitPrice: number
   priceTotal: number
@@ -15,19 +14,11 @@ export interface OrderItem {
 export interface OrderResponse {
   id: number
   userId: number
-  orderCode: string
+  firebaseUid?: string
   orderDate: string
-  status: string
+  status: OrderStatus
   total: number
-  pickupMethod: string
-  deliveryDriverId?: number
-  deliveryStatus?: string
-  assignedAt?: string
-  acceptedAt?: string
-  outForDeliveryAt?: string
-  arrivedAt?: string
-  deliveredAt?: string
-  cancelledAt?: string
+  pickupMethod: 'store' | 'delivery'
   updatedAt?: string
   items: OrderItem[]
 }
@@ -42,25 +33,14 @@ export type CreateOrderItem = {
 export type CreateOrderPayload = {
   userId?: number
   orderDate?: string
-  orderCode?: string
   firebaseUid?: string
-  customer?: {
-    email: string
-    firstName: string
-    lastName: string
-    address: string
-    city: string
-    state: string
-    zipCode: string
-    dni?: string
-    docType?: 'boleta' | 'factura'
-    docNumber?: string
-    firebaseUid?: string
-  }
-  status: 'pending' | 'completed' | 'shipped' | 'cancelled'
+  status: OrderStatus
   total: number
-  pickupMethod: 'shipping' | 'store'
+  pickupMethod: 'store' | 'delivery'
   items: CreateOrderItem[]
+  // Campos para delivery (enviados a delivery-service via RabbitMQ)
+  deliveryAddress?: string
+  customerNotes?: string
 }
 
 const RESOURCE = 'orders'

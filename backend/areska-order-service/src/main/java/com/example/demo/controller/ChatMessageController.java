@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.dto.request.ChatMessageRequest;
 import com.example.demo.dto.response.ChatMessageResponse;
 import com.example.demo.service.ChatMessageService;
+import com.example.demo.shared.Api.ApiSuccess;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/chat-messages")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Validated
 @Slf4j
@@ -38,11 +37,14 @@ public class ChatMessageController {
      * GET /chat-messages/order/{orderId}
      */
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<ChatMessageResponse>> getMessagesByOrder(
+    public ResponseEntity<ApiSuccess<List<ChatMessageResponse>>> getMessagesByOrder(
             @PathVariable Integer orderId) {
         log.info("Getting messages for order ID: {}", orderId);
         List<ChatMessageResponse> messages = chatMessageService.getMessagesByOrderId(orderId);
-        return ResponseEntity.ok(messages);
+        ApiSuccess<List<ChatMessageResponse>> response = new ApiSuccess<>(
+                messages.isEmpty() ? "No messages found" : "Messages retrieved successfully",
+                messages);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -50,11 +52,14 @@ public class ChatMessageController {
      * GET /chat-messages/order/{orderId}/unread
      */
     @GetMapping("/order/{orderId}/unread")
-    public ResponseEntity<List<ChatMessageResponse>> getUnreadMessagesByOrder(
+    public ResponseEntity<ApiSuccess<List<ChatMessageResponse>>> getUnreadMessagesByOrder(
             @PathVariable Integer orderId) {
         log.info("Getting unread messages for order ID: {}", orderId);
         List<ChatMessageResponse> messages = chatMessageService.getUnreadMessagesByOrderId(orderId);
-        return ResponseEntity.ok(messages);
+        ApiSuccess<List<ChatMessageResponse>> response = new ApiSuccess<>(
+                messages.isEmpty() ? "No unread messages" : "Unread messages retrieved successfully",
+                messages);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -62,11 +67,11 @@ public class ChatMessageController {
      * GET /chat-messages/{messageId}
      */
     @GetMapping("/{messageId}")
-    public ResponseEntity<ChatMessageResponse> getMessageById(
+    public ResponseEntity<ApiSuccess<ChatMessageResponse>> getMessageById(
             @PathVariable Integer messageId) {
         log.info("Getting message ID: {}", messageId);
         ChatMessageResponse message = chatMessageService.getMessageById(messageId);
-        return ResponseEntity.ok(message);
+        return ResponseEntity.ok(new ApiSuccess<>("Message found", message));
     }
 
     /**
@@ -74,12 +79,13 @@ public class ChatMessageController {
      * POST /chat-messages
      */
     @PostMapping
-    public ResponseEntity<ChatMessageResponse> sendMessage(
+    public ResponseEntity<ApiSuccess<ChatMessageResponse>> sendMessage(
             @Valid @RequestBody ChatMessageRequest request) {
         log.info("Sending message for order ID: {} from {} (ID: {})", 
                 request.getOrderId(), request.getSenderType(), request.getSenderId());
         ChatMessageResponse response = chatMessageService.sendMessage(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiSuccess<>("Message sent successfully", response));
     }
 
     /**
@@ -87,11 +93,11 @@ public class ChatMessageController {
      * PUT /chat-messages/{messageId}/read
      */
     @PutMapping("/{messageId}/read")
-    public ResponseEntity<ChatMessageResponse> markMessageAsRead(
+    public ResponseEntity<ApiSuccess<ChatMessageResponse>> markMessageAsRead(
             @PathVariable Integer messageId) {
         log.info("Marking message ID: {} as read", messageId);
         ChatMessageResponse response = chatMessageService.markAsRead(messageId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new ApiSuccess<>("Message marked as read", response));
     }
 
     /**
@@ -99,11 +105,11 @@ public class ChatMessageController {
      * PUT /chat-messages/order/{orderId}/read-all
      */
     @PutMapping("/order/{orderId}/read-all")
-    public ResponseEntity<List<ChatMessageResponse>> markAllMessagesAsRead(
+    public ResponseEntity<ApiSuccess<List<ChatMessageResponse>>> markAllMessagesAsRead(
             @PathVariable Integer orderId) {
         log.info("Marking all messages as read for order ID: {}", orderId);
         List<ChatMessageResponse> messages = chatMessageService.markAllAsRead(orderId);
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(new ApiSuccess<>("All messages marked as read", messages));
     }
 
     /**
@@ -111,10 +117,10 @@ public class ChatMessageController {
      * DELETE /chat-messages/{messageId}
      */
     @DeleteMapping("/{messageId}")
-    public ResponseEntity<Void> deleteMessage(
+    public ResponseEntity<ApiSuccess<Void>> deleteMessage(
             @PathVariable Integer messageId) {
         log.info("Deleting message ID: {}", messageId);
         chatMessageService.deleteMessage(messageId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ApiSuccess<>("Message deleted successfully", null));
     }
 }

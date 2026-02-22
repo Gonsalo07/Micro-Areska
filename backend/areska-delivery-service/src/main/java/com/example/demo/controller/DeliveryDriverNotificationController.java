@@ -47,8 +47,7 @@ public class DeliveryDriverNotificationController {
         ApiSuccess<List<DeliveryDriverNotificationResponse>> response = new ApiSuccess<>(
                 notifications.isEmpty() ? "No notifications found" : "Notifications retrieved successfully",
                 notifications);
-        HttpStatus status = notifications.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/driver/{driverId}/unread")
@@ -59,8 +58,7 @@ public class DeliveryDriverNotificationController {
         ApiSuccess<List<DeliveryDriverNotificationResponse>> response = new ApiSuccess<>(
                 notifications.isEmpty() ? "No unread notifications" : "Unread notifications retrieved successfully",
                 notifications);
-        HttpStatus status = notifications.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/order/{orderId}")
@@ -71,8 +69,7 @@ public class DeliveryDriverNotificationController {
         ApiSuccess<List<DeliveryDriverNotificationResponse>> response = new ApiSuccess<>(
                 notifications.isEmpty() ? "No notifications found for this order" : "Notifications retrieved successfully",
                 notifications);
-        HttpStatus status = notifications.isEmpty() ? HttpStatus.NO_CONTENT : HttpStatus.OK;
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{notificationId}/read")

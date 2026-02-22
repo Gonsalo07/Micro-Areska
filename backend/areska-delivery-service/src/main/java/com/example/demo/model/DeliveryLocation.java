@@ -28,8 +28,8 @@ public class DeliveryLocation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "order_id", nullable = false)
-    private Integer orderId;
+    @Column(name = "order_delivery_id", nullable = false)
+    private Integer orderDeliveryId;
 
     @Column(name = "delivery_driver_id", nullable = false)
     private Integer deliveryDriverId;

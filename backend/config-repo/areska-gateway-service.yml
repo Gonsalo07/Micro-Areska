@@ -6,6 +6,22 @@ spring:
     name: areska-gateway-service
   cloud:
     gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:3000,http://localhost:3001,http://localhost:8090"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            exposedHeaders:
+              - "X-Firebase-UiD"
+              - "X-Firebase-Email"
       discovery:
         locator:
           enabled: true
@@ -14,7 +30,7 @@ spring:
         - AuthenticationFilter
       routes:
         - id: category-service
-          uri: lb://ARESKA-CATEGORY-SERVICES
+          uri: lb://ARESKA-PRODUCT-SERVICE
           predicates:
             - Path=/api/categories/**
           filters:
@@ -25,12 +41,50 @@ spring:
             - Path=/api/deliveries/**
           filters:
             - StripPrefix=1
+        - id: delivery-drivers-service
+          uri: lb://ARESKA-DELIVERY-SERVICE
+          predicates:
+            - Path=/api/delivery-drivers/**
+          filters:
+            - StripPrefix=1
+        - id: order-deliveries-service
+          uri: lb://ARESKA-DELIVERY-SERVICE
+          predicates:
+            - Path=/api/order-deliveries/**
+          filters:
+            - StripPrefix=1
+        - id: delivery-driver-notifications-service
+          uri: lb://ARESKA-DELIVERY-SERVICE
+          predicates:
+            - Path=/api/delivery-driver-notifications/**
+          filters:
+            - StripPrefix=1
         - id: order-service
           uri: lb://ARESKA-ORDER-SERVICE
           predicates:
             - Path=/api/orders/**
           filters:
             - StripPrefix=1
+        - id: chat-messages-service
+          uri: lb://ARESKA-ORDER-SERVICE
+          predicates:
+            - Path=/api/chat-messages/**
+          filters:
+            - StripPrefix=1
+        - id: websocket-service
+          uri: lb://ARESKA-ORDER-SERVICE
+          predicates:
+            - Path=/api/ws/**
+          filters:
+            - StripPrefix=1
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        - id: delivery-websocket-service
+          uri: lb://ARESKA-DELIVERY-SERVICE
+          predicates:
+            - Path=/api/delivery-ws/**
+          filters:
+            - StripPrefix=1
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
         - id: payment-service
           uri: lb://ARESKA-PAYMENT-SERVICE
           predicates:
