@@ -1,21 +1,24 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+
 import { ArrowLeft, MapPin, MessageCircle, Package, Truck } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
-import { DeliveryMap } from '@/components/tracking/delivery-map'
-import { CustomerChat } from '@/components/tracking/customer-chat'
 import { useAuthStore } from '@auth/stores/auth.store'
 import { deliveryApi, type OrderDeliveryDetail } from '@public/api/delivery'
-import { ordersApi, type OrderResponse } from '@public/api/orders'
+import { type OrderResponse, ordersApi } from '@public/api/orders'
+
+import { CustomerChat } from '@/components/tracking/customer-chat'
+import { DeliveryMap } from '@/components/tracking/delivery-map'
+import { Button } from '@/components/ui/button'
 import {
-  getDeliveryStatusColor,
-  getDeliveryStatusLabel,
-} from '@/lib/constants/order-status'
-import { useOrderTracking, type DeliveryStatusUpdate, type OrderStatusUpdate } from '@/hooks/use-delivery-tracking'
+  type DeliveryStatusUpdate,
+  type OrderStatusUpdate,
+  useOrderTracking,
+} from '@/hooks/use-delivery-tracking'
+import { getDeliveryStatusColor, getDeliveryStatusLabel } from '@/lib/constants/order-status'
 import { useNotificationStore } from '@/stores/notification-store'
 
 const ACTIVE_STATUSES = ['ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'ARRIVED']
@@ -25,9 +28,9 @@ export function TrackingPage() {
   const params = useParams()
   const router = useRouter()
   const profile = useAuthStore((s) => s.profile)
-  
+
   const orderId = parseInt(params.orderId as string)
-  
+
   const addNotification = useNotificationStore((s) => s.add)
 
   const [order, setOrder] = useState<OrderResponse | null>(null)
@@ -35,14 +38,17 @@ export function TrackingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const showNotif = useCallback((message: string, label: string, type: 'delivery' | 'order') => {
-    toast(label, {
-      description: message,
-      icon: type === 'delivery' ? '🚚' : '📋',
-      duration: 6000,
-    })
-    addNotification({ type, orderId, label, message })
-  }, [addNotification, orderId])
+  const showNotif = useCallback(
+    (message: string, label: string, type: 'delivery' | 'order') => {
+      toast(label, {
+        description: message,
+        icon: type === 'delivery' ? '🚚' : '📋',
+        duration: 6000,
+      })
+      addNotification({ type, orderId, label, message })
+    },
+    [addNotification, orderId]
+  )
 
   const isChatEnabled = delivery ? CHAT_ENABLED_STATUSES.includes(delivery.status) : false
   const isTrackingActive = delivery ? ACTIVE_STATUSES.includes(delivery.status) : false
@@ -51,20 +57,40 @@ export function TrackingPage() {
   useOrderTracking({
     orderId: isTrackingActive ? orderId : undefined,
     enabled: isTrackingActive,
-    onDeliveryUpdate: useCallback((update: DeliveryStatusUpdate) => {
-      setDelivery((prev) => prev ? { ...prev, status: update.status as import('@/lib/constants/order-status').DeliveryStatus } : prev)
-      showNotif(update.message, update.statusLabel, 'delivery')
-      if (update.status === 'DELIVERED' || update.status === 'CANCELLED') {
-        setTimeout(() => router.push('/mis-compras'), 4000)
-      }
-    }, [router, showNotif]),
-    onOrderUpdate: useCallback((update: OrderStatusUpdate) => {
-      setOrder((prev) => prev ? { ...prev, status: update.status as import('@/lib/constants/order-status').OrderStatus } : prev)
-      showNotif(update.message, update.statusLabel, 'order')
-      if (update.status === 'completed' || update.status === 'cancelled') {
-        setTimeout(() => router.push('/mis-compras'), 4000)
-      }
-    }, [router, showNotif]),
+    onDeliveryUpdate: useCallback(
+      (update: DeliveryStatusUpdate) => {
+        setDelivery((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: update.status as import('@/lib/constants/order-status').DeliveryStatus,
+              }
+            : prev
+        )
+        showNotif(update.message, update.statusLabel, 'delivery')
+        if (update.status === 'DELIVERED' || update.status === 'CANCELLED') {
+          setTimeout(() => router.push('/mis-compras'), 4000)
+        }
+      },
+      [router, showNotif]
+    ),
+    onOrderUpdate: useCallback(
+      (update: OrderStatusUpdate) => {
+        setOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: update.status as import('@/lib/constants/order-status').OrderStatus,
+              }
+            : prev
+        )
+        showNotif(update.message, update.statusLabel, 'order')
+        if (update.status === 'completed' || update.status === 'cancelled') {
+          setTimeout(() => router.push('/mis-compras'), 4000)
+        }
+      },
+      [router, showNotif]
+    ),
   })
 
   const fetchOrderAndDelivery = useCallback(async () => {
@@ -73,7 +99,7 @@ export function TrackingPage() {
     try {
       // Obtener la orden
       const orderData = await ordersApi.getById(orderId)
-      
+
       // Nota: La validación de permisos ya se hace en el Gateway
       // El Gateway valida el token de Firebase y el acceso a la orden
       // if (orderData.firebaseUid !== profile.firebaseUid) {
@@ -159,11 +185,7 @@ export function TrackingPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/mis-compras')}
-            className="mb-4"
-          >
+          <Button variant="ghost" onClick={() => router.push('/mis-compras')} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver a Mis Compras
           </Button>
@@ -178,9 +200,7 @@ export function TrackingPage() {
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     Pedido #{order.id}
                   </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {order.orderDate}
-                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{order.orderDate}</p>
                 </div>
               </div>
 
@@ -209,12 +229,20 @@ export function TrackingPage() {
                 <div
                   className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
                   style={{
-                    width: delivery.status === 'ASSIGNED' ? '20%' :
-                           delivery.status === 'ACCEPTED' ? '40%' :
-                           delivery.status === 'PICKED_UP' ? '60%' :
-                           delivery.status === 'OUT_FOR_DELIVERY' ? '80%' :
-                           delivery.status === 'ARRIVED' ? '95%' :
-                           delivery.status === 'DELIVERED' ? '100%' : '0%'
+                    width:
+                      delivery.status === 'ASSIGNED'
+                        ? '20%'
+                        : delivery.status === 'ACCEPTED'
+                          ? '40%'
+                          : delivery.status === 'PICKED_UP'
+                            ? '60%'
+                            : delivery.status === 'OUT_FOR_DELIVERY'
+                              ? '80%'
+                              : delivery.status === 'ARRIVED'
+                                ? '95%'
+                                : delivery.status === 'DELIVERED'
+                                  ? '100%'
+                                  : '0%',
                   }}
                 />
               </div>
@@ -223,41 +251,40 @@ export function TrackingPage() {
         </div>
 
         {/* Main content - Mapa y Chat */}
-       {/* Main content - Mapa y Chat */}
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        {/* Main content - Mapa y Chat */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          {/* MAPA */}
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Ubicación en Tiempo Real
+                </h2>
+              </div>
 
-  {/* MAPA */}
-  <div className="lg:col-span-2">
-    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <MapPin className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Ubicación en Tiempo Real
-        </h2>
-      </div>
+              <div className="flex-1">
+                <DeliveryMap delivery={delivery} />
+              </div>
+            </div>
+          </div>
 
-      <div className="flex-1">
-        <DeliveryMap delivery={delivery} />
-      </div>
-    </div>
-  </div>
+          {/* CHAT */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <MessageCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Chat con Repartidor
+                </h2>
+              </div>
 
-  {/* CHAT */}
-  <div className="lg:col-span-1">
-    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <MessageCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Chat con Repartidor
-        </h2>
-      </div>
-
-      <div className="flex-1">
-        <CustomerChat orderId={orderId} isEnabled={isChatEnabled} />
-      </div>
-    </div>
-  </div>
-</div>
+              <div className="flex-1">
+                <CustomerChat orderId={orderId} isEnabled={isChatEnabled} />
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Productos del pedido */}
         <div className="mt-6 bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
@@ -273,7 +300,9 @@ export function TrackingPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">🛒</span>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{item.productName}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {item.productName}
+                    </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Cantidad: {item.quantity}
                     </p>
