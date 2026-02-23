@@ -70,7 +70,7 @@ export const deliveryDriverApi = {
    * Update driver availability status
    */
   async updateAvailability(id: number, isAvailable: boolean) {
-    return apiClient.put<DeliveryDriverResponse>(`/${RESOURCE}/${id}`, { isAvailable })
+    return apiClient.patch<DeliveryDriverResponse>(`/${RESOURCE}/${id}/availability`, { isAvailable })
   },
 
   /**

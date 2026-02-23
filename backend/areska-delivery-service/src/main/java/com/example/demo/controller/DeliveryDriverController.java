@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -98,6 +99,20 @@ public class DeliveryDriverController {
             @Valid @RequestBody DeliveryDriverUpdateRequest request) {
         DeliveryDriverResponse updated = deliveryDriverService.update(id, request);
         return ResponseEntity.ok(new ApiSuccess<>("Delivery driver updated successfully", updated));
+    }
+
+    @PatchMapping("/{id}/availability")
+    @Operation(summary = "Update driver availability (online/offline)")
+    public ResponseEntity<ApiSuccess<DeliveryDriverResponse>> updateAvailability(
+            @PathVariable Integer id,
+            @RequestBody java.util.Map<String, Boolean> body) {
+        Boolean isAvailable = body.get("isAvailable");
+        if (isAvailable == null) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiSuccess<>("isAvailable field is required", null));
+        }
+        DeliveryDriverResponse updated = deliveryDriverService.updateAvailability(id, isAvailable);
+        return ResponseEntity.ok(new ApiSuccess<>("Driver availability updated", updated));
     }
 
     @DeleteMapping("/{id}")

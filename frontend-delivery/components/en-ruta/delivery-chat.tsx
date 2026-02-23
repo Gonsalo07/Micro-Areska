@@ -163,9 +163,9 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
   }
 
   return (
-    <div className="w-80 flex flex-col bg-default-50 rounded-lg border border-default-200">
-      {/* Header */}
-      <div className="p-4 border-b border-default-200 bg-primary/5 rounded-t-lg">
+    <div className="flex flex-col h-full bg-default-50 rounded-lg border border-default-200">
+    {/* Header */}
+    <div className="p-4 border-b border-default-200 bg-primary/5 rounded-t-lg">
         <div className="flex items-center gap-3">
           <Avatar
             src="https://i.pravatar.cc/150?u=customer123"
@@ -179,8 +179,8 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 p-4 space-y-3 min-h-[350px] max-h-[400px] overflow-y-auto">
+       {/* Messages */}
+    <div className="flex-1 p-4 space-y-3 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="sm" label="Cargando mensajes..." />
@@ -221,8 +221,8 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-3 border-t border-default-200">
+     {/* Input */}
+    <div className="p-3 border-t border-default-200">
         <div className="flex gap-2">
           <Input
             placeholder="Escribe un mensaje..."

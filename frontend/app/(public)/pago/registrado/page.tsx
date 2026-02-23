@@ -6,7 +6,11 @@ export const metadata: Metadata = {
   title: 'Pago registrado',
 }
 
-export default function PagoRegistradoPage({ searchParams }: { searchParams: { code?: string } }) {
-  const code = searchParams.code ?? ''
+export default async function PagoRegistradoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>
+}) {
+  const { code = '' } = await searchParams
   return <CheckoutSuccessPage code={code} />
 }

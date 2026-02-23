@@ -47,6 +47,18 @@ public class Order {
     @Column(nullable = false, name = "pickup_method", length = 50)
     private String pickupMethod;
 
+    @Column(name = "delivery_address", columnDefinition = "TEXT")
+    private String deliveryAddress;
+
+    @Column(name = "destination_lat", precision = 10, scale = 8)
+    private BigDecimal destinationLat;
+
+    @Column(name = "destination_lng", precision = 11, scale = 8)
+    private BigDecimal destinationLng;
+
+    @Column(name = "customer_notes", columnDefinition = "TEXT")
+    private String customerNotes;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

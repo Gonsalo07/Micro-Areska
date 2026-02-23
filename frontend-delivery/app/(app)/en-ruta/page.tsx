@@ -18,12 +18,8 @@ export default function EnRutaPage() {
   const [activeDelivery, setActiveDelivery] = useState<OrderDeliveryDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  
-  // Test mode
-  const [testMode, setTestMode] = useState(false);
-
-  const hasActiveDelivery = testMode || !!activeDelivery;
-  const isChatEnabled = testMode || (activeDelivery && CHAT_ENABLED_STATUSES.includes(activeDelivery.status));
+  const hasActiveDelivery = !!activeDelivery;
+  const isChatEnabled = activeDelivery && CHAT_ENABLED_STATUSES.includes(activeDelivery.status);
 
   const fetchActiveDelivery = useCallback(async () => {
     if (!driver?.id) {
@@ -158,35 +154,23 @@ export default function EnRutaPage() {
             </Chip>
           )}
           
-          {/* Botón de Test - QUITAR DESPUÉS */}
-          <div className="flex items-center gap-3 bg-warning/10 p-3 rounded-lg border border-warning/30">
-            <span className="text-sm text-warning-600 font-medium">
-              🧪 Test:
-            </span>
-            <Switch
-              isSelected={testMode}
-              onValueChange={setTestMode}
-              color="warning"
-              size="sm"
-            />
-          </div>
         </div>
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 flex gap-4 min-h-0">
+      <div className="flex gap-4 h-[calc(100vh-250px)]">
         {/* Mapa */}
-        <DeliveryMap delivery={testMode && !activeDelivery ? { id: 99999, orderId: 99999, status: "OUT_FOR_DELIVERY" as DeliveryStatus } as unknown as OrderDeliveryDetailResponse : activeDelivery ?? undefined} />
+        <DeliveryMap delivery={activeDelivery ?? undefined} />
         
         {/* Chat - solo habilitado en OUT_FOR_DELIVERY o ARRIVED */}
         <DeliveryChat 
           isChatEnabled={!!isChatEnabled}
-          delivery={activeDelivery || (testMode ? { id: 99999, orderId: 99999, status: "OUT_FOR_DELIVERY" as DeliveryStatus } as unknown as OrderDeliveryDetailResponse : undefined)}
+          delivery={activeDelivery ?? undefined}
         />
       </div>
 
       {/* Acciones según el estado */}
-      {hasActiveDelivery && !testMode && activeDelivery && (
+      {hasActiveDelivery && activeDelivery && (
         <div className="flex gap-3 justify-center">
           {activeDelivery.status === "ASSIGNED" && (
             <Button 
@@ -256,22 +240,7 @@ export default function EnRutaPage() {
       )}
 
       {/* Acciones de test */}
-      {testMode && (
-        <div className="flex gap-3 justify-center">
-          <Button color="success" variant="flat" startContent="📞">
-            Llamar cliente
-          </Button>
-          <Button color="primary" variant="flat" startContent="📍">
-            Abrir en Maps
-          </Button>
-          <Button color="warning" variant="flat" startContent="⚠️">
-            Reportar problema
-          </Button>
-          <Button color="success" startContent="✅">
-            Marcar entregado
-          </Button>
-        </div>
-      )}
+      
     </div>
   );
 }

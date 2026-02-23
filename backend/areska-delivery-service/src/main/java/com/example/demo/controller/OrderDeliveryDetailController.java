@@ -125,6 +125,20 @@ public class OrderDeliveryDetailController {
         return ResponseEntity.ok(new ApiSuccess<>("Driver assigned successfully", detail));
     }
 
+    @PostMapping("/{id}/accept/{driverId}")
+    @Operation(summary = "Driver accepts a pending order (first come, first served)")
+    public ResponseEntity<ApiSuccess<OrderDeliveryDetailResponse>> acceptOrder(
+            @Min(1) @PathVariable Integer id,
+            @Min(1) @PathVariable Integer driverId) {
+        try {
+            OrderDeliveryDetailResponse detail = service.acceptOrder(id, driverId);
+            return ResponseEntity.ok(new ApiSuccess<>("Order accepted successfully", detail));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409)
+                    .body(new ApiSuccess<>("Order already taken by another driver", null));
+        }
+    }
+
     @PutMapping("/order/{orderId}/status")
     @Operation(summary = "Update delivery status by order ID")
     public ResponseEntity<ApiSuccess<OrderDeliveryDetailResponse>> updateStatusByOrderId(

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, MapPin, MessageCircle, Package, Truck } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { DeliveryMap } from '@/components/tracking/delivery-map'
@@ -14,6 +15,8 @@ import {
   getDeliveryStatusColor,
   getDeliveryStatusLabel,
 } from '@/lib/constants/order-status'
+import { useOrderTracking, type DeliveryStatusUpdate, type OrderStatusUpdate } from '@/hooks/use-delivery-tracking'
+import { useNotificationStore } from '@/stores/notification-store'
 
 const ACTIVE_STATUSES = ['ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'ARRIVED']
 const CHAT_ENABLED_STATUSES = ['OUT_FOR_DELIVERY', 'ARRIVED']
@@ -25,12 +28,44 @@ export function TrackingPage() {
   
   const orderId = parseInt(params.orderId as string)
   
+  const addNotification = useNotificationStore((s) => s.add)
+
   const [order, setOrder] = useState<OrderResponse | null>(null)
   const [delivery, setDelivery] = useState<OrderDeliveryDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const showNotif = useCallback((message: string, label: string, type: 'delivery' | 'order') => {
+    toast(label, {
+      description: message,
+      icon: type === 'delivery' ? '🚚' : '📋',
+      duration: 6000,
+    })
+    addNotification({ type, orderId, label, message })
+  }, [addNotification, orderId])
+
   const isChatEnabled = delivery ? CHAT_ENABLED_STATUSES.includes(delivery.status) : false
+  const isTrackingActive = delivery ? ACTIVE_STATUSES.includes(delivery.status) : false
+
+  // Recibir actualizaciones en tiempo real (delivery-ws + order-ws)
+  useOrderTracking({
+    orderId: isTrackingActive ? orderId : undefined,
+    enabled: isTrackingActive,
+    onDeliveryUpdate: useCallback((update: DeliveryStatusUpdate) => {
+      setDelivery((prev) => prev ? { ...prev, status: update.status as import('@/lib/constants/order-status').DeliveryStatus } : prev)
+      showNotif(update.message, update.statusLabel, 'delivery')
+      if (update.status === 'DELIVERED' || update.status === 'CANCELLED') {
+        setTimeout(() => router.push('/mis-compras'), 4000)
+      }
+    }, [router, showNotif]),
+    onOrderUpdate: useCallback((update: OrderStatusUpdate) => {
+      setOrder((prev) => prev ? { ...prev, status: update.status as import('@/lib/constants/order-status').OrderStatus } : prev)
+      showNotif(update.message, update.statusLabel, 'order')
+      if (update.status === 'completed' || update.status === 'cancelled') {
+        setTimeout(() => router.push('/mis-compras'), 4000)
+      }
+    }, [router, showNotif]),
+  })
 
   const fetchOrderAndDelivery = useCallback(async () => {
     if (!orderId || !profile?.firebaseUid) return
@@ -188,33 +223,41 @@ export function TrackingPage() {
         </div>
 
         {/* Main content - Mapa y Chat */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Mapa - 2 columnas en desktop */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Ubicación en Tiempo Real
-                </h2>
-              </div>
-              <DeliveryMap delivery={delivery} />
-            </div>
-          </div>
+       {/* Main content - Mapa y Chat */}
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
-          {/* Chat - 1 columna en desktop */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Chat con Repartidor
-                </h2>
-              </div>
-              <CustomerChat orderId={orderId} isEnabled={isChatEnabled} />
-            </div>
-          </div>
-        </div>
+  {/* MAPA */}
+  <div className="lg:col-span-2">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
+      <div className="flex items-center gap-2 mb-4">
+        <MapPin className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Ubicación en Tiempo Real
+        </h2>
+      </div>
+
+      <div className="flex-1">
+        <DeliveryMap delivery={delivery} />
+      </div>
+    </div>
+  </div>
+
+  {/* CHAT */}
+  <div className="lg:col-span-1">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
+      <div className="flex items-center gap-2 mb-4">
+        <MessageCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Chat con Repartidor
+        </h2>
+      </div>
+
+      <div className="flex-1">
+        <CustomerChat orderId={orderId} isEnabled={isChatEnabled} />
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Productos del pedido */}
         <div className="mt-6 bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">

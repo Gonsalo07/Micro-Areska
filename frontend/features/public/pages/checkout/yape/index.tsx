@@ -87,23 +87,13 @@ export function YapePage() {
       await ordersApi.createOrder({
         status: 'pending',
         total: data.total,
-        pickupMethod: 'shipping',
+        pickupMethod: 'delivery',
         orderCode: data.orderCode,
         userId: realUserId,
         firebaseUid: profile?.firebaseUid,
-        customer: {
-          email: data.email,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          zipCode: data.zipCode,
-          dni: data.dni,
-          docType: data.docType,
-          docNumber: data.docNumber,
-          firebaseUid: profile?.firebaseUid,
-        },
+        deliveryAddress: [data.address, data.city, data.state, data.zipCode].filter(Boolean).join(', '),
+        destinationLat: data.destinationLat ?? null,
+        destinationLng: data.destinationLng ?? null,
         items: mapItemsForApi(data.items || []),
       })
       clearCart()

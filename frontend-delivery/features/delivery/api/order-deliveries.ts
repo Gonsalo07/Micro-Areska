@@ -118,4 +118,20 @@ export const orderDeliveriesApi = {
   async addDriverNotes(id: number, driverNotes: string): Promise<OrderDeliveryDetailResponse> {
     return apiClient.put<OrderDeliveryDetailResponse>(`/order-deliveries/${id}`, { driverNotes })
   },
+
+  /**
+   * Driver acepta una orden pendiente (modelo Uber: primero en aceptar la obtiene).
+   * Retorna null si ya fue tomada por otro driver (HTTP 409).
+   */
+  async acceptOrder(deliveryId: number, driverId: number): Promise<OrderDeliveryDetailResponse | null> {
+    try {
+      return await apiClient.post<OrderDeliveryDetailResponse>(
+        `/order-deliveries/${deliveryId}/accept/${driverId}`,
+        {}
+      )
+    } catch (err: any) {
+      if (err?.status === 409 || err?.response?.status === 409) return null
+      return null
+    }
+  },
 }

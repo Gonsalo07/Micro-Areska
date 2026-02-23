@@ -34,16 +34,18 @@ public class DeliveryConsumer {
             
             // Crear el detalle de entrega
             OrderDeliveryDetailRequest detailRequest = OrderDeliveryDetailRequest.builder()
-                    .orderId(request.orderId())
-                    .customerName(request.customerName())
-                    .customerPhone(request.customerPhone())
-                    .destinationAddress(request.deliveryAddress())
-                    .customerNotes(request.notes())
+                    .orderId(request.getOrderId())
+                    .customerName(request.getCustomerName())
+                    .customerPhone(request.getCustomerPhone())
+                    .destinationAddress(request.getDeliveryAddress())
+                    .destinationLat(request.getDestinationLat())
+                    .destinationLng(request.getDestinationLng())
+                    .customerNotes(request.getNotes())
                     .build();
             
             var created = orderDeliveryDetailService.create(detailRequest);
             log.info("Created delivery detail ID: {} for order ID: {} (Customer: {})", 
-                    created.id(), request.orderId(), request.customerName());
+                    created.id(), request.getOrderId(), request.getCustomerName());
             
         } catch (Exception e) {
             log.error("Error processing delivery request: {}", e.getMessage(), e);

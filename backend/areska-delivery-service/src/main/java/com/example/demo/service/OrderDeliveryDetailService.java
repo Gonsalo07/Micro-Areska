@@ -3,9 +3,12 @@ package com.example.demo.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.demo.dto.DeliveryStatusUpdate;
+import com.example.demo.dto.NewOrderNotification;
 import com.example.demo.dto.OrderDeliveryDetailRequest;
 import com.example.demo.dto.OrderDeliveryDetailResponse;
 import com.example.demo.dto.OrderDeliveryDetailUpdateRequest;
@@ -27,6 +30,7 @@ public class OrderDeliveryDetailService {
 
     private final OrderDeliveryDetailRepository repository;
     private final DeliveryDriverRepository driverRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public List<OrderDeliveryDetailResponse> getAll() {
         return repository.findAll().stream()
@@ -97,7 +101,64 @@ public class OrderDeliveryDetailService {
 
         OrderDeliveryDetail saved = repository.save(detail);
         log.info("Created delivery detail for order ID: {} (Customer: {})", request.getOrderId(), request.getCustomerName());
+
+        // Broadcast a todos los drivers disponibles via WebSocket
+        broadcastNewOrder(saved);
+
         return toResponse(saved);
+    }
+
+    /**
+     * Notifica a todos los drivers disponibles de una nueva orden pendiente.
+     * Publica en /topic/orders/available
+     */
+    public void broadcastNewOrder(OrderDeliveryDetail detail) {
+        NewOrderNotification notification = new NewOrderNotification(
+            detail.getId(),
+            detail.getOrderId(),
+            detail.getCustomerName(),
+            detail.getCustomerPhone(),
+            detail.getDestinationAddress(),
+            detail.getDestinationLat(),
+            detail.getDestinationLng(),
+            detail.getCustomerNotes(),
+            detail.getCreatedAt()
+        );
+        messagingTemplate.convertAndSend("/topic/orders/available", notification);
+        log.info("Broadcasted new order {} to all available drivers", detail.getOrderId());
+    }
+
+    /**
+     * El driver acepta una orden. Primer driver en llamar este método la obtiene.
+     * Control de raza: verifica que siga en PENDING_ASSIGNMENT dentro de la transacción.
+     */
+    @Transactional
+    public OrderDeliveryDetailResponse acceptOrder(Integer deliveryId, Integer driverId) {
+        OrderDeliveryDetail detail = repository.findById(deliveryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Delivery not found with ID: " + deliveryId));
+
+        // Control de raza: si ya fue tomada por otro driver, lanzar excepción
+        if (!DeliveryStatus.PENDING_ASSIGNMENT.getValue().equals(detail.getStatus())) {
+            throw new IllegalStateException("Order already taken by another driver");
+        }
+
+        DeliveryDriver driver = driverRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with ID: " + driverId));
+
+        detail.setDeliveryDriver(driver);
+        detail.setStatus(DeliveryStatus.ASSIGNED.getValue());
+        detail.setAssignedAt(LocalDateTime.now());
+        repository.save(detail);
+
+        // Bloquear al driver para no recibir más órdenes mientras esté en ruta
+        driver.setIsAvailable(false);
+        driverRepository.save(driver);
+
+        // Notificar a todos que esta orden ya fue tomada → los demás drivers descartan el popup
+        messagingTemplate.convertAndSend("/topic/orders/taken/" + deliveryId, driverId);
+        log.info("Driver {} ({}) accepted order/delivery {}", driverId, driver.getFullName(), deliveryId);
+
+        return toResponse(detail);
     }
 
     @Transactional
@@ -171,6 +232,11 @@ public class OrderDeliveryDetailService {
         switch (newStatus) {
             case ASSIGNED:
                 if (detail.getAssignedAt() == null) detail.setAssignedAt(now);
+                // Bloquear driver al asignarlo
+                if (detail.getDeliveryDriver() != null) {
+                    detail.getDeliveryDriver().setIsAvailable(false);
+                    driverRepository.save(detail.getDeliveryDriver());
+                }
                 break;
             case ACCEPTED:
                 if (detail.getAcceptedAt() == null) detail.setAcceptedAt(now);
@@ -186,14 +252,72 @@ public class OrderDeliveryDetailService {
                 break;
             case DELIVERED:
                 if (detail.getDeliveredAt() == null) detail.setDeliveredAt(now);
+                // Liberar driver al completar la entrega
+                if (detail.getDeliveryDriver() != null) {
+                    detail.getDeliveryDriver().setIsAvailable(true);
+                    driverRepository.save(detail.getDeliveryDriver());
+                    log.info("Driver {} freed after delivery DELIVERED for order {}", detail.getDeliveryDriver().getId(), detail.getOrderId());
+                }
                 break;
             case CANCELLED:
                 if (detail.getCancelledAt() == null) detail.setCancelledAt(now);
                 if (cancellationReason != null) detail.setCancellationReason(cancellationReason);
+                // Liberar driver si se cancela
+                if (detail.getDeliveryDriver() != null) {
+                    detail.getDeliveryDriver().setIsAvailable(true);
+                    driverRepository.save(detail.getDeliveryDriver());
+                    log.info("Driver {} freed after delivery CANCELLED for order {}", detail.getDeliveryDriver().getId(), detail.getOrderId());
+                }
                 break;
             default:
                 break;
         }
+
+        // Notificar al cliente sobre el cambio de estado vía WebSocket
+        publishTrackingUpdate(detail, newStatus);
+    }
+
+    private void publishTrackingUpdate(OrderDeliveryDetail detail, DeliveryStatus newStatus) {
+        String message = switch (newStatus) {
+            case ASSIGNED         -> "Tu pedido fue asignado a un repartidor.";
+            case ACCEPTED         -> "El repartidor aceptó tu pedido y se está preparando.";
+            case PICKED_UP        -> "El repartidor ya recogió tu pedido.";
+            case OUT_FOR_DELIVERY -> "Tu pedido está en camino hacia ti.";
+            case ARRIVED          -> "El repartidor llegó a tu dirección.";
+            case DELIVERED        -> "¡Tu pedido fue entregado! Gracias por tu compra.";
+            case CANCELLED        -> "Tu pedido fue cancelado.";
+            default               -> "El estado de tu entrega fue actualizado.";
+        };
+
+        String label = switch (newStatus) {
+            case ASSIGNED         -> "Asignado";
+            case ACCEPTED         -> "Aceptado";
+            case PICKED_UP        -> "Recogido";
+            case OUT_FOR_DELIVERY -> "En camino";
+            case ARRIVED          -> "Llegó";
+            case DELIVERED        -> "Entregado";
+            case CANCELLED        -> "Cancelado";
+            default               -> newStatus.getValue();
+        };
+
+        DeliveryDriver driver = detail.getDeliveryDriver();
+        DeliveryStatusUpdate payload = new DeliveryStatusUpdate(
+                detail.getId(),
+                detail.getOrderId(),
+                newStatus.getValue(),
+                label,
+                message,
+                driver != null ? driver.getFullName() : null,
+                driver != null ? driver.getPhone() : null,
+                driver != null ? driver.getPhotoUrl() : null,
+                driver != null ? driver.getCurrentLat() : null,
+                driver != null ? driver.getCurrentLng() : null,
+                LocalDateTime.now()
+        );
+
+        String topic = "/topic/order/" + detail.getOrderId() + "/tracking";
+        messagingTemplate.convertAndSend(topic, payload);
+        log.info("Published tracking update for order {} → {} to {}", detail.getOrderId(), newStatus.getValue(), topic);
     }
 
     private OrderDeliveryDetailResponse toResponse(OrderDeliveryDetail d) {
