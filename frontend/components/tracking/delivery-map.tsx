@@ -1,9 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { MapPin, Navigation, Truck } from 'lucide-react'
+
 import type { OrderDeliveryDetail } from '@public/api/delivery'
-import { useWebSocketTracking, type DeliveryLocationUpdate } from '@/hooks/use-websocket-tracking'
+
+import { type DeliveryLocationUpdate, useWebSocketTracking } from '@/hooks/use-websocket-tracking'
 
 declare global {
   interface Window {
@@ -23,37 +26,43 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
   const directionsRendererRef = useRef<any>(null)
   const directionsServiceRef = useRef<any>(null)
   const isInitializedRef = useRef(false)
-  const hasInitialFitRef = useRef(false) // Solo hacer fitBounds una vez
+  const hasInitialFitRef = useRef(false)
   const [distance, setDistance] = useState<string>('')
   const [duration, setDuration] = useState<string>('')
-  const [currentDriverLocation, setCurrentDriverLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [currentDriverLocation, setCurrentDriverLocation] = useState<{
+    lat: number
+    lng: number
+  } | null>(null)
 
-  // Callback en ref para evitar recreaciones
   const onLocationUpdateRef = useRef((update: DeliveryLocationUpdate) => {
-    console.log('📍 Nueva ubicación del delivery recibida:', update)
-    setCurrentDriverLocation({
-      lat: update.latitude,
-      lng: update.longitude,
-    })
-    
-    // Actualizar distancia y duración si vienen en el update
+    console.log('Nueva ubicación del delivery recibida:', update)
+    setCurrentDriverLocation({ lat: update.latitude, lng: update.longitude })
     if (update.estimatedDistance) setDistance(update.estimatedDistance)
     if (update.estimatedDuration) setDuration(update.estimatedDuration)
   })
 
-  // WebSocket para recibir actualizaciones de ubicación en tiempo real
+  const onLocationUpdateStable = useCallback((update: DeliveryLocationUpdate) => {
+    onLocationUpdateRef.current(update)
+  }, [])
+
   const { isConnected } = useWebSocketTracking({
     orderId: delivery?.orderId,
     enabled: !!delivery && ['OUT_FOR_DELIVERY', 'ARRIVED'].includes(delivery.status),
-    onLocationUpdate: onLocationUpdateRef.current,
+    onLocationUpdate: onLocationUpdateStable,
   })
 
   useEffect(() => {
-    console.log('🔍 Estado WebSocket - Conectado:', isConnected, '| Orden:', delivery?.orderId, '| Estado:', delivery?.status)
+    console.log(
+      'Estado WebSocket - Conectado:',
+      isConnected,
+      '| Orden:',
+      delivery?.orderId,
+      '| Estado:',
+      delivery?.status
+    )
   }, [isConnected, delivery?.orderId, delivery?.status])
 
   useEffect(() => {
-    // Prevenir múltiples inicializaciones
     if (!delivery || !mapRef.current || isInitializedRef.current) {
       return
     }
@@ -64,10 +73,12 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
       status: delivery.status,
       driverName: delivery.driverName,
       hasDriverLocation: !!(delivery.driverCurrentLat && delivery.driverCurrentLng),
-      driverLocation: delivery.driverCurrentLat ? {
-        lat: delivery.driverCurrentLat,
-        lng: delivery.driverCurrentLng
-      } : null
+      driverLocation: delivery.driverCurrentLat
+        ? {
+            lat: delivery.driverCurrentLat,
+            lng: delivery.driverCurrentLng,
+          }
+        : null,
     })
 
     isInitializedRef.current = true
@@ -79,9 +90,8 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
       return
     }
 
-    // Cargar Google Maps script dinámicamente (solo si no existe)
     const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`)
-    
+
     if (!window.google && !existingScript) {
       const script = document.createElement('script')
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
@@ -97,7 +107,6 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
     function initMap() {
       if (!mapRef.current || !window.google || !delivery) return
 
-      // Centrar en la ubicación del cliente (destino)
       const clientLocation = {
         lat: delivery.destinationLat || 19.4326,
         lng: delivery.destinationLng || -99.1332,
@@ -115,12 +124,11 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         ],
       })
 
-      // Inicializar servicio de direcciones
       directionsServiceRef.current = new window.google.maps.DirectionsService()
       directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
         map: mapInstanceRef.current,
         suppressMarkers: true,
-        preserveViewport: true, // NO mover el mapa al actualizar la ruta
+        preserveViewport: true,
         polylineOptions: {
           strokeColor: '#4F46E5',
           strokeWeight: 5,
@@ -128,7 +136,6 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         },
       })
 
-      // Marcador del cliente (destino) - ROJO y fijo
       destinationMarkerRef.current = new window.google.maps.Marker({
         position: clientLocation,
         map: mapInstanceRef.current,
@@ -139,9 +146,8 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         animation: window.google.maps.Animation.DROP,
       })
 
-      console.log('🏠 Marcador del cliente creado en:', clientLocation)
+      console.log('Marcador del cliente creado en:', clientLocation)
 
-      // Actualizar posición del delivery si existe desde props iniciales
       if (delivery.driverCurrentLat && delivery.driverCurrentLng) {
         setCurrentDriverLocation({
           lat: delivery.driverCurrentLat,
@@ -151,9 +157,8 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
     }
 
     return () => {
-      console.log('🗺️ Limpiando mapa')
-      
-      // Limpiar markers primero
+      console.log('Limpiando mapa')
+
       if (driverMarkerRef.current) {
         driverMarkerRef.current.setMap(null)
         driverMarkerRef.current = null
@@ -162,20 +167,18 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         destinationMarkerRef.current.setMap(null)
         destinationMarkerRef.current = null
       }
-      
-      // Limpiar directions renderer
+
       if (directionsRendererRef.current) {
         directionsRendererRef.current.setMap(null)
         directionsRendererRef.current = null
       }
-      
+
       directionsServiceRef.current = null
       isInitializedRef.current = false
       mapInstanceRef.current = null
     }
-  }, [delivery?.id]) // Solo depender del ID, no del objeto completo
+  }, [delivery?.id])
 
-  // Efecto separado para actualizar la ubicación del driver cuando cambia por WebSocket
   useEffect(() => {
     if (!mapInstanceRef.current || !window.google || !delivery || !currentDriverLocation) return
 
@@ -185,9 +188,8 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
       lng: delivery.destinationLng || -99.1332,
     }
 
-    console.log('🚗 Actualizando ubicación del repartidor:', driverLocation)
+    console.log('Actualizando ubicación del repartidor:', driverLocation)
 
-    // Crear o actualizar marcador del repartidor - AZUL
     if (!driverMarkerRef.current) {
       driverMarkerRef.current = new window.google.maps.Marker({
         position: driverLocation,
@@ -204,11 +206,9 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         zIndex: 1000,
       })
     } else {
-      // Animación suave de movimiento
       driverMarkerRef.current.setPosition(driverLocation)
     }
 
-    // Ajustar vista para mostrar ambos marcadores - SOLO LA PRIMERA VEZ
     if (!hasInitialFitRef.current) {
       hasInitialFitRef.current = true
       const bounds = new window.google.maps.LatLngBounds()
@@ -216,7 +216,6 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
       bounds.extend(clientLocation)
       mapInstanceRef.current.fitBounds(bounds)
 
-      // Ajustar zoom si está muy cerca
       const mapInstance = mapInstanceRef.current
       if (mapInstance) {
         window.google.maps.event.addListenerOnce(mapInstance, 'bounds_changed', () => {
@@ -230,9 +229,8 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
       }
     }
 
-    // Trazar ruta desde repartidor hasta cliente
     if (directionsServiceRef.current && typeof directionsServiceRef.current.route === 'function') {
-      console.log('🗺️ Trazando ruta desde repartidor hasta tu ubicación')
+      console.log('Trazando ruta desde repartidor hasta tu ubicación')
 
       try {
         directionsServiceRef.current.route(
@@ -249,15 +247,19 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
               if (route && route.legs[0]) {
                 setDistance(route.legs[0].distance.text)
                 setDuration(route.legs[0].duration.text)
-                console.log('✅ Ruta calculada:', route.legs[0].distance.text, route.legs[0].duration.text)
+                console.log(
+                  'Ruta calculada:',
+                  route.legs[0].distance.text,
+                  route.legs[0].duration.text
+                )
               }
             } else {
-              console.error('❌ Error al calcular ruta:', status)
+              console.error('Error al calcular ruta:', status)
             }
           }
         )
       } catch (error) {
-        console.error('❌ Error al llamar DirectionsService:', error)
+        console.error('Error al llamar DirectionsService:', error)
       }
     }
   }, [currentDriverLocation, delivery])
@@ -286,7 +288,7 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
           </div>
         </div>
       )}
-      
+
       {/* Información de distancia y tiempo */}
       {distance && duration && (
         <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
@@ -317,14 +319,8 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
 
       {/* Contenedor del mapa */}
       <div className="relative w-full h-[400px]">
-        {/* Mapa real de Google Maps - sin hijos React para evitar conflictos DOM */}
-        <div 
-          ref={mapRef} 
-          className="absolute inset-0"
-          suppressHydrationWarning
-        />
-        
-        {/* Overlay cuando no hay ubicación del driver - fuera del div del mapa */}
+        <div ref={mapRef} className="absolute inset-0" suppressHydrationWarning />
+
         {!currentDriverLocation && ['OUT_FOR_DELIVERY', 'ARRIVED'].includes(delivery.status) && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 pointer-events-none">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl max-w-sm mx-4 pointer-events-auto">
@@ -371,13 +367,9 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
                 {delivery.driverName}
               </p>
               {delivery.driverPhone && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {delivery.driverPhone}
-                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{delivery.driverPhone}</p>
               )}
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-                Tu repartidor
-              </p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Tu repartidor</p>
             </div>
           </div>
         )}

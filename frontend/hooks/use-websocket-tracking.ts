@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
@@ -21,10 +22,10 @@ interface UseWebSocketTrackingOptions {
   onLocationUpdate: (update: DeliveryLocationUpdate) => void
 }
 
-export const useWebSocketTracking = ({ 
-  orderId, 
-  enabled, 
-  onLocationUpdate 
+export const useWebSocketTracking = ({
+  orderId,
+  enabled,
+  onLocationUpdate,
 }: UseWebSocketTrackingOptions) => {
   const clientRef = useRef<Client | null>(null)
   const connectingRef = useRef(false) // Prevent double connection in Strict Mode
@@ -62,7 +63,7 @@ export const useWebSocketTracking = ({
     const wsUrl = `${config.api.baseUrl}/delivery-ws`
     console.log('🔌 Conectando WebSocket a:', wsUrl)
     const socket = new SockJS(wsUrl)
-    
+
     const stompClient = new Client({
       webSocketFactory: () => socket as any,
       debug: (str) => {

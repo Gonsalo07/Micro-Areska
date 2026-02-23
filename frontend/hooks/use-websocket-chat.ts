@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
@@ -34,7 +35,7 @@ export const useWebSocketChat = ({ orderId, enabled, onMessage }: UseWebSocketCh
     // Crear socket a través del Gateway
     const wsUrl = `${config.api.baseUrl}/ws`
     const socket = new SockJS(wsUrl)
-    
+
     const stompClient = new Client({
       webSocketFactory: () => socket as any,
       debug: (str) => {

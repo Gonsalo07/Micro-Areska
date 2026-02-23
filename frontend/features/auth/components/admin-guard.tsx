@@ -9,7 +9,10 @@ interface Props {
 }
 
 export function AdminGuard({ children }: Props) {
-  const { loading, shouldRender } = useRequireAuth({ redirectTo: '/', requireAdmin: true })
+  const { loading, shouldRender } = useRequireAuth({
+    redirectTo: '/',
+    requireAdmin: true,
+  })
 
   if (loading) {
     return <LoadingScreen />

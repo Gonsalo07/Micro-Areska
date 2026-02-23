@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
@@ -59,8 +60,12 @@ export const useOrderTracking = ({
   // Refs para callbacks — evita re-suscripciones innecesarias
   const onDeliveryUpdateRef = useRef(onDeliveryUpdate)
   const onOrderUpdateRef = useRef(onOrderUpdate)
-  useEffect(() => { onDeliveryUpdateRef.current = onDeliveryUpdate })
-  useEffect(() => { onOrderUpdateRef.current = onOrderUpdate })
+  useEffect(() => {
+    onDeliveryUpdateRef.current = onDeliveryUpdate
+  })
+  useEffect(() => {
+    onOrderUpdateRef.current = onOrderUpdate
+  })
 
   useEffect(() => {
     if (!orderId || !enabled) {

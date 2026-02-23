@@ -19,7 +19,10 @@ import { getAuthClient, getGithubProvider, getGoogleProvider } from './client'
 
 export type AuthUser = Pick<FirebaseUser, 'uid' | 'email' | 'displayName' | 'photoURL'>
 
-function splitName(displayName?: string): { firstName: string; lastName: string } {
+function splitName(displayName?: string): {
+  firstName: string
+  lastName: string
+} {
   const name = (displayName ?? '').trim()
   if (!name) return { firstName: 'Usuario', lastName: 'Firebase' }
   const parts = name.split(/\s+/)
@@ -118,7 +121,12 @@ export async function loginWithGithub(): Promise<AuthUser> {
   const cred = await signInWithPopup(auth, getGithubProvider())
   const u = cred.user
   await syncUserToBackend(u, 'github')
-  return { uid: u.uid, email: u.email, displayName: u.displayName, photoURL: u.photoURL }
+  return {
+    uid: u.uid,
+    email: u.email,
+    displayName: u.displayName,
+    photoURL: u.photoURL,
+  }
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

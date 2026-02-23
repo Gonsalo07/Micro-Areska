@@ -1,7 +1,5 @@
 'use client'
 
-import { useRef } from 'react'
-
 import Link from 'next/link'
 
 import {
@@ -46,8 +44,6 @@ export function ConfirmDialog({
   open,
   children,
 }: ConfirmDialogProps) {
-  const actionButtonRef = useRef<HTMLButtonElement>(null)
-
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       {children && <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>}
@@ -65,7 +61,9 @@ export function ConfirmDialog({
           {to ? (
             <AlertDialogAction
               asChild
-              className={buttonVariants({ variant: actionButton.variant ?? 'default' })}
+              className={buttonVariants({
+                variant: actionButton.variant ?? 'default',
+              })}
             >
               <Link href={to}>
                 {actionButton?.icon} {actionButton.label}
@@ -73,7 +71,9 @@ export function ConfirmDialog({
             </AlertDialogAction>
           ) : (
             <AlertDialogAction
-              className={buttonVariants({ variant: actionButton?.variant ?? 'default' })}
+              className={buttonVariants({
+                variant: actionButton?.variant ?? 'default',
+              })}
               onClick={onConfirm}
             >
               {actionButton?.icon} {actionButton.label}

@@ -1,13 +1,14 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { type FieldPath, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import type { MapPickerAddressComponents } from '@/components/shared/map-picker'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -20,13 +21,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { useCartStore } from '@/stores/cart-store'
 
-import type { MapPickerAddressComponents } from '@/components/shared/map-picker'
-
 // Google Maps requiere browser — carga dinámica
-const MapPicker = dynamic(
-  () => import('@/components/shared/map-picker').then((m) => m.MapPicker),
-  { ssr: false, loading: () => <div className="h-80 bg-muted rounded-lg animate-pulse" /> }
-)
+const MapPicker = dynamic(() => import('@/components/shared/map-picker').then((m) => m.MapPicker), {
+  ssr: false,
+  loading: () => <div className="h-80 bg-muted rounded-lg animate-pulse" />,
+})
 
 const schema = z
   .object({
@@ -248,10 +247,18 @@ export function CheckoutPage() {
                     onLocationSelect={(lat, lng, components: MapPickerAddressComponents) => {
                       setCoords({ lat, lng })
                       setMapError(null)
-                      form.setValue('address', components.street, { shouldValidate: true })
-                      form.setValue('city', components.state, { shouldValidate: true })
-                      form.setValue('state', components.city, { shouldValidate: true })
-                      form.setValue('zipCode', components.zipCode, { shouldValidate: true })
+                      form.setValue('address', components.street, {
+                        shouldValidate: true,
+                      })
+                      form.setValue('city', components.state, {
+                        shouldValidate: true,
+                      })
+                      form.setValue('state', components.city, {
+                        shouldValidate: true,
+                      })
+                      form.setValue('zipCode', components.zipCode, {
+                        shouldValidate: true,
+                      })
                     }}
                   />
                 </div>
@@ -266,7 +273,9 @@ export function CheckoutPage() {
                 {/* Campos auto-rellenados por Google Maps */}
                 {coords ? (
                   <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dirección confirmada</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Dirección confirmada
+                    </p>
                     <p className="font-medium">{form.watch('address')}</p>
                     <p className="text-muted-foreground">
                       {form.watch('state')} · {form.watch('city')} · CP {form.watch('zipCode')}

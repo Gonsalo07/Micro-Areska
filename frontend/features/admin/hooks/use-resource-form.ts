@@ -85,7 +85,10 @@ export function useResourceForm<TData, TFormValues extends FieldValues, TListIte
 
       if (mapDataToFormRef.current && result) {
         const formValues = mapDataToFormRef.current(result)
-        form.reset({ ...defaultValuesRef.current, ...formValues } as TFormValues)
+        form.reset({
+          ...defaultValuesRef.current,
+          ...formValues,
+        } as TFormValues)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar datos'
@@ -115,7 +118,10 @@ export function useResourceForm<TData, TFormValues extends FieldValues, TListIte
               return updateQueryData(currentData, result)
             }
             if ('content' in currentData && Array.isArray(currentData.content)) {
-              return { ...currentData, content: updateQueryData(currentData.content, result) }
+              return {
+                ...currentData,
+                content: updateQueryData(currentData.content, result),
+              }
             }
             return currentData
           }
