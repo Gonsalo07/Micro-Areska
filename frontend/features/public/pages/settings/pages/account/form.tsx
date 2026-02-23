@@ -61,7 +61,9 @@ const passwordSchema = z
       .max(50, {
         message: 'La contraseña no puede tener más de 50 caracteres.',
       })
-      .regex(/^\S+$/, { message: 'La contraseña no puede contener espacios en blanco.' })
+      .regex(/^\S+$/, {
+        message: 'La contraseña no puede contener espacios en blanco.',
+      })
       .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/, {
         message:
           'La contraseña debe incluir al menos una minúscula, una mayúscula, un número y un carácter especial (@$!%*?&).',
@@ -101,7 +103,11 @@ export function AccountForm() {
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
-    defaultValues: { currentPassword: '', newPassword: '', confirmNewPassword: '' },
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+    },
   })
 
   const handleDialogOpenChange = (open: boolean) => {
