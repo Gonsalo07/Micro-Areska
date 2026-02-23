@@ -91,7 +91,9 @@ export function YapePage() {
         orderCode: data.orderCode,
         userId: realUserId,
         firebaseUid: profile?.firebaseUid,
-        deliveryAddress: [data.address, data.city, data.state, data.zipCode].filter(Boolean).join(', '),
+        deliveryAddress: [data.address, data.city, data.state, data.zipCode]
+          .filter(Boolean)
+          .join(', '),
         destinationLat: data.destinationLat ?? null,
         destinationLng: data.destinationLng ?? null,
         items: mapItemsForApi(data.items || []),
