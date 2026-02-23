@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { Send } from 'lucide-react'
+
+import { useAuthStore } from '@auth/stores/auth.store'
+import { chatApi, type ChatMessage } from '@public/api/chat'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { chatApi, type ChatMessage } from '@public/api/chat'
-import { useAuthStore } from '@auth/stores/auth.store'
 
 interface CustomerChatProps {
   orderId: number
@@ -51,14 +53,14 @@ export function CustomerChat({ orderId, isEnabled }: CustomerChatProps) {
     try {
       setLoading(true)
       const chatMessages = await chatApi.getByOrderId(orderId)
-      
+
       // Validar que la respuesta sea un array
       if (!Array.isArray(chatMessages)) {
         console.error('Invalid chat messages response:', chatMessages)
         setMessages([])
         return
       }
-      
+
       const mappedMessages = chatMessages.map(mapChatMessage)
       setMessages(mappedMessages)
 
@@ -93,18 +95,18 @@ export function CustomerChat({ orderId, isEnabled }: CustomerChatProps) {
     const interval = setInterval(async () => {
       try {
         const chatMessages = await chatApi.getByOrderId(orderId)
-        
+
         // Validar que la respuesta sea un array
         if (!Array.isArray(chatMessages)) {
           return
         }
-        
+
         const mappedMessages = chatMessages.map(mapChatMessage)
-        
+
         // Solo actualizar si hay cambios
         if (JSON.stringify(mappedMessages) !== JSON.stringify(messages)) {
           setMessages(mappedMessages)
-          
+
           // Marcar nuevos mensajes del driver como leídos
           const unreadMessages = chatMessages.filter(
             (msg) => !msg.readAt && msg.senderType === 'DELIVERY_DRIVER'
