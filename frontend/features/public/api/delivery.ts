@@ -8,7 +8,7 @@ import type { DeliveryStatus } from '@/lib/constants/order-status'
 export interface OrderDeliveryDetail {
   id: number
   orderId: number
-  
+
   // Driver info (null si no está asignado)
   deliveryDriverId?: number
   driverName?: string
@@ -16,20 +16,20 @@ export interface OrderDeliveryDetail {
   driverPhotoUrl?: string
   driverCurrentLat?: number
   driverCurrentLng?: number
-  
+
   // Destino
   destinationAddress: string
   destinationLat?: number
   destinationLng?: number
   destinationReference?: string
-  
+
   // Comentarios
   customerNotes?: string
   driverNotes?: string
-  
+
   // Estado
   status: DeliveryStatus
-  
+
   // Timestamps
   assignedAt?: string
   acceptedAt?: string
@@ -39,7 +39,7 @@ export interface OrderDeliveryDetail {
   deliveredAt?: string
   cancelledAt?: string
   cancellationReason?: string
-  
+
   createdAt: string
   updatedAt?: string
 }
@@ -76,7 +76,9 @@ export const deliveryApi = {
    */
   async getActiveByDriverId(driverId: number): Promise<OrderDeliveryDetail[]> {
     try {
-      const response = await apiClient.get<OrderDeliveryDetail[]>(`/${RESOURCE}/driver/${driverId}/active`)
+      const response = await apiClient.get<OrderDeliveryDetail[]>(
+        `/${RESOURCE}/driver/${driverId}/active`
+      )
       return response || []
     } catch {
       return []
