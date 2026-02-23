@@ -7,10 +7,14 @@ const RESOURCE = 'products'
 
 export const productsApi = {
   async getAll() {
-    return apiClient.get<ProductList[]>(`/${RESOURCE}`, { authenticated: false })
+    return apiClient.get<ProductList[]>(`/${RESOURCE}`, {
+      authenticated: false,
+    })
   },
 
   async getById(id: number) {
-    return apiClient.get<ProductDetail>(`/${RESOURCE}/${id}`, { authenticated: false })
+    return apiClient.get<ProductDetail>(`/${RESOURCE}/${id}`, {
+      authenticated: false,
+    })
   },
 }
