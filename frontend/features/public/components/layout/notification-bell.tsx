@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { Bell, Package, Truck, X } from 'lucide-react'
+import { Bell, Package, Truck } from 'lucide-react'
 import Link from 'next/link'
 
 import { Badge } from '@/components/ui/badge'
@@ -104,9 +104,7 @@ export function NotificationBell() {
                     })}
                   </p>
                 </div>
-                {!n.read && (
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
-                )}
+                {!n.read && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />}
               </Link>
             ))
           )}
