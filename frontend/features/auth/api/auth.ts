@@ -32,7 +32,12 @@ export const authApi = {
 
   async updateProfile(
     firebaseUid: string,
-    data: { firstName: string; lastName: string; phone: string; address?: string }
+    data: {
+      firstName: string
+      lastName: string
+      phone: string
+      address?: string
+    }
   ): Promise<UserProfile> {
     return apiClient.put<UserProfile>(`/users/${firebaseUid}/profile`, data)
   },
