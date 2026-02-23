@@ -36,11 +36,14 @@ export type CreateOrderPayload = {
   firebaseUid?: string
   status: OrderStatus
   total: number
-  pickupMethod: 'store' | 'delivery'
+  pickupMethod: 'store' | 'delivery' | 'shipping'
   items: CreateOrderItem[]
+  orderCode?: string
   // Campos para delivery (enviados a delivery-service via RabbitMQ)
   deliveryAddress?: string
-  customerNotes?: string
+  destinationLat?: number | null
+  destinationLng?: number | null
+  customerNotes?: string | null
 }
 
 const RESOURCE = 'orders'

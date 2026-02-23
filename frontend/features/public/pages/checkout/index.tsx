@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -18,6 +19,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useCartStore } from '@/stores/cart-store'
+
+import type { MapPickerAddressComponents } from '@/components/shared/map-picker'
+
+// Google Maps requiere browser — carga dinámica
+const MapPicker = dynamic(
+  () => import('@/components/shared/map-picker').then((m) => m.MapPicker),
+  { ssr: false, loading: () => <div className="h-80 bg-muted rounded-lg animate-pulse" /> }
+)
 
 const schema = z
   .object({
@@ -54,6 +63,8 @@ export function CheckoutPage() {
   const router = useRouter()
   const { items, getTotal } = useCartStore()
   const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   const subtotal = getTotal()
   const shipping = subtotal >= 100 ? 0 : 9.99
@@ -88,7 +99,7 @@ export function CheckoutPage() {
   })
 
   const step1: Readonly<FieldPath<FormInput>[]> = ['email', 'firstName', 'lastName', 'dni']
-  const step2: Readonly<FieldPath<FormInput>[]> = ['address', 'city', 'state', 'zipCode']
+  const step2: Readonly<FieldPath<FormInput>[]> = [] // validado manualmente con coords
   const step3: Readonly<FieldPath<FormInput>[]> = ['docType', 'docNumber', 'paymentMethod']
   const fieldsByStep: Record<1 | 2 | 3, Readonly<FieldPath<FormInput>[]>> = {
     1: step1,
@@ -99,6 +110,13 @@ export function CheckoutPage() {
   async function nextStep() {
     const ok = await form.trigger(fieldsByStep[step])
     if (!ok) return
+
+    if (step === 2 && !coords) {
+      setMapError('Debes seleccionar tu dirección en el mapa para continuar.')
+      return
+    }
+    setMapError(null)
+
     if (step < 3) {
       setStep((s) => (s + 1) as 1 | 2 | 3)
     } else {
@@ -113,6 +131,8 @@ export function CheckoutPage() {
           tax,
           subtotal,
           items,
+          destinationLat: coords?.lat ?? null,
+          destinationLng: coords?.lng ?? null,
         })
       )
       router.push('/pago/yape')
@@ -215,60 +235,53 @@ export function CheckoutPage() {
             {step === 2 && (
               <>
                 <h2 className="text-lg">2. Envío</h2>
-                <FormField
-                  name="address"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <FormItem>
-                      <FormLabel required>Dirección</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Calle y número" {...field} />
-                      </FormControl>
-                      {fieldState.error && <FormMessage />}
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <FormField
-                    name="city"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <FormItem>
-                        <FormLabel required>Departamento</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Departamento" {...field} />
-                        </FormControl>
-                        {fieldState.error && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="state"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <FormItem>
-                        <FormLabel required>Provincia</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Provincia" {...field} />
-                        </FormControl>
-                        {fieldState.error && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="zipCode"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <FormItem>
-                        <FormLabel required>Código postal</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Código Postal" {...field} />
-                        </FormControl>
-                        {fieldState.error && <FormMessage />}
-                      </FormItem>
-                    )}
+
+                {/* Mapa para seleccionar ubicación */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">
+                    Selecciona tu dirección de entrega en Lima{' '}
+                    <span className="text-destructive">*</span>
+                  </p>
+                  <MapPicker
+                    initialLat={coords?.lat}
+                    initialLng={coords?.lng}
+                    onLocationSelect={(lat, lng, components: MapPickerAddressComponents) => {
+                      setCoords({ lat, lng })
+                      setMapError(null)
+                      form.setValue('address', components.street, { shouldValidate: true })
+                      form.setValue('city', components.state, { shouldValidate: true })
+                      form.setValue('state', components.city, { shouldValidate: true })
+                      form.setValue('zipCode', components.zipCode, { shouldValidate: true })
+                    }}
                   />
                 </div>
+
+                {/* Error si no se seleccionó ubicación */}
+                {mapError && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <span>⚠</span> {mapError}
+                  </p>
+                )}
+
+                {/* Campos auto-rellenados por Google Maps */}
+                {coords ? (
+                  <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dirección confirmada</p>
+                    <p className="font-medium">{form.watch('address')}</p>
+                    <p className="text-muted-foreground">
+                      {form.watch('state')} · {form.watch('city')} · CP {form.watch('zipCode')}
+                    </p>
+                    {/* Campos ocultos para que el form los incluya */}
+                    <input type="hidden" {...form.register('address')} />
+                    <input type="hidden" {...form.register('city')} />
+                    <input type="hidden" {...form.register('state')} />
+                    <input type="hidden" {...form.register('zipCode')} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-2">
+                    Busca tu dirección en el mapa para continuar.
+                  </p>
+                )}
               </>
             )}
 

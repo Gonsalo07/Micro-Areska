@@ -1,5 +1,6 @@
 package com.example.demo.dto.request;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -25,8 +26,16 @@ public class OrderCreateRequest {
 	@Valid
 	private List<OrderItemRequest> items;
 	
-	// Opcional - solo necesario si pickupMethod es "delivery"
+	// Delivery address
 	@Size(max = 500, message = "Delivery address must not exceed 500 characters")
 	private String deliveryAddress;
+
+	// Coordenadas del destino de entrega
+	private BigDecimal destinationLat;
+	private BigDecimal destinationLng;
+
+	// Notas del cliente
+	@Size(max = 1000)
+	private String customerNotes;
 }
 

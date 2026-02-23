@@ -7,6 +7,7 @@ import { SearchIcon } from "../icons/searchicon";
 import { BurguerButton } from "./burguer-button";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { UserDropdown } from "./user-dropdown";
+import { AvailabilityToggle } from "./availability-toggle";
 
 interface Props {
   children: React.ReactNode;
@@ -47,6 +48,8 @@ export const NavbarWrapper = ({ children }: Props) => {
           </div>
 
           <NotificationsDropdown />
+
+          <AvailabilityToggle />
 
           <div className="max-md:hidden">
             <SupportIcon />

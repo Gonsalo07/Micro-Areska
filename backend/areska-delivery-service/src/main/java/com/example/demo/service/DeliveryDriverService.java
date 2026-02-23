@@ -153,6 +153,16 @@ public class DeliveryDriverService {
     }
 
     @Transactional
+    public DeliveryDriverResponse updateAvailability(Integer id, boolean isAvailable) {
+        DeliveryDriver driver = deliveryDriverRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Delivery driver not found with ID: " + id));
+        driver.setIsAvailable(isAvailable);
+        DeliveryDriver updated = deliveryDriverRepository.save(driver);
+        log.info("Driver {} availability set to {}", id, isAvailable);
+        return toResponse(updated);
+    }
+
+    @Transactional
     public void delete(Integer id) {
         DeliveryDriver driver = deliveryDriverRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery driver not found with ID: " + id));

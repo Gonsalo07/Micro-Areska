@@ -27,7 +27,7 @@ public class DeliveryProducer {
         try {
             String message = objectMapper.writeValueAsString(request);
             rabbitTemplate.convertAndSend(queueName, message);
-            log.info("Sent delivery request to queue for order ID: {}", request.orderId());
+            log.info("Sent delivery request to queue for order ID: {}", request.getOrderId());
         } catch (Exception e) {
             log.error("Error sending delivery request to queue: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to send delivery request to queue", e);

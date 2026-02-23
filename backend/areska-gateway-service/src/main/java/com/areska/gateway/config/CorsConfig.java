@@ -41,7 +41,7 @@ public class CorsConfig {
                 if (origin != null && allowedOriginsList.contains(origin)) {
                     headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
                     headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-                    headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, DELETE, OPTIONS");
+                    headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, PATCH, DELETE, OPTIONS");
                     headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
                     headers.add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "X-Firebase-UiD, X-Firebase-Email");
                     headers.add(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");

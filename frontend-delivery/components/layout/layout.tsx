@@ -5,6 +5,7 @@ import { useLockedBody } from "../hooks/useBodyLock";
 import { NavbarWrapper } from "../navbar/navbar";
 import { SidebarWrapper } from "../sidebar/sidebar";
 import { SidebarContext } from "./layout-context";
+import { NewOrderNotificationManager } from "../orders/new-order-notification-manager";
 
 interface Props {
   children: React.ReactNode;
@@ -28,6 +29,8 @@ export const Layout = ({ children }: Props) => {
         <SidebarWrapper />
         <NavbarWrapper>{children}</NavbarWrapper>
       </section>
+      {/* Notificaciones de nuevas órdenes — se muestra sobre todo el layout */}
+      <NewOrderNotificationManager />
     </SidebarContext.Provider>
   );
 };

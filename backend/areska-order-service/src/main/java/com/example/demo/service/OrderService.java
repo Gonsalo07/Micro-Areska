@@ -1,9 +1,11 @@
 package com.example.demo.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,7 @@ import com.example.demo.dto.request.OrderCreateRequest;
 import com.example.demo.dto.request.OrderUpdateRequest;
 import com.example.demo.dto.response.OrderDetailReponse;
 import com.example.demo.dto.response.OrderResponse;
+import com.example.demo.dto.response.OrderStatusUpdate;
 import com.example.demo.model.Order;
 import com.example.demo.model.OrderDetails;
 import com.example.demo.model.OrderStatus;
@@ -49,6 +52,7 @@ public class OrderService {
     private final UserServiceClient userServiceClient;
     private final ProductServiceClient productServiceClient;
     private final DeliveryProducer deliveryProducer;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public List<OrderResponse> getList() {
         return StreamSupport.stream(orderRepository.findAll().spliterator(), false)
@@ -95,6 +99,10 @@ public class OrderService {
                 .status("pending")
                 .pickupMethod(req.getPickupMethod() == null ? "store" : req.getPickupMethod())
                 .total(BigDecimal.ZERO)
+                .deliveryAddress(req.getDeliveryAddress())
+                .destinationLat(req.getDestinationLat())
+                .destinationLng(req.getDestinationLng())
+                .customerNotes(req.getCustomerNotes())
                 .build();
 
         Order savedOrder = orderRepository.save(order);
@@ -147,7 +155,9 @@ public class OrderService {
                             customerName,
                             user.phone(),
                             req.getDeliveryAddress(),
-                            null
+                            req.getDestinationLat(),
+                            req.getDestinationLng(),
+                            req.getCustomerNotes()
                     );
                     deliveryProducer.sendDeliveryRequest(deliveryRequest);
                     log.info("Delivery request sent to queue for order ID: {} (Customer: {})", 
@@ -180,7 +190,41 @@ public class OrderService {
             }
         }
         
-        return toResponse(orderRepository.save(order));
+        OrderResponse saved = toResponse(orderRepository.save(order));
+
+        // Notificar al cliente vía WebSocket
+        if (req.getStatus() != null && !req.getStatus().isBlank()) {
+            publishOrderStatusUpdate(saved.id(), saved.status());
+        }
+
+        return saved;
+    }
+
+    private void publishOrderStatusUpdate(Integer orderId, String statusValue) {
+        String label = switch (statusValue.toLowerCase()) {
+            case "pending"   -> "Pendiente";
+            case "confirmed" -> "Confirmado";
+            case "preparing" -> "En preparación";
+            case "ready"     -> "Listo";
+            case "completed" -> "Completado";
+            case "cancelled" -> "Cancelado";
+            default          -> statusValue;
+        };
+
+        String message = switch (statusValue.toLowerCase()) {
+            case "pending"   -> "Tu pedido fue recibido y está pendiente de confirmación.";
+            case "confirmed" -> "Tu pedido fue confirmado.";
+            case "preparing" -> "Tu pedido está siendo preparado.";
+            case "ready"     -> "Tu pedido está listo.";
+            case "completed" -> "¡Tu pedido fue completado!";
+            case "cancelled" -> "Tu pedido fue cancelado.";
+            default          -> "El estado de tu pedido fue actualizado.";
+        };
+
+        OrderStatusUpdate payload = new OrderStatusUpdate(orderId, statusValue, label, message, LocalDateTime.now());
+        String topic = "/topic/order/" + orderId + "/status";
+        messagingTemplate.convertAndSend(topic, payload);
+        log.info("Published order status update for order {} → {} to {}", orderId, statusValue, topic);
     }
 
     private OrderResponse toResponse(Order o) {

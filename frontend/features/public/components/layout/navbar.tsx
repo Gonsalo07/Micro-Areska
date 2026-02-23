@@ -25,6 +25,7 @@ import { getInitials } from '@/lib/utils'
 
 import { CartCount } from './cart-count'
 import { Navigation } from './navigation'
+import { NotificationBell } from './notification-bell'
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -84,6 +85,7 @@ export function Navbar() {
               <div className="h-10 w-10 animate-pulse rounded-md bg-muted" />
             ) : profile ? (
               <>
+                <NotificationBell />
                 <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="rounded-full">
