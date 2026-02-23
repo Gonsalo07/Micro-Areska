@@ -60,9 +60,11 @@ export const DELIVERY_STATUS_LABELS: Record<DeliveryStatus, string> = {
  * Colores para los estados de orden (Tailwind classes)
  */
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
-  [ORDER_STATUS.PENDING]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+  [ORDER_STATUS.PENDING]:
+    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
   [ORDER_STATUS.CONFIRMED]: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  [ORDER_STATUS.PREPARING]: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
+  [ORDER_STATUS.PREPARING]:
+    'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
   [ORDER_STATUS.READY]: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
   [ORDER_STATUS.COMPLETED]: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   [ORDER_STATUS.CANCELLED]: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
@@ -72,13 +74,17 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
  * Colores para los estados de entrega (Tailwind classes)
  */
 export const DELIVERY_STATUS_COLORS: Record<DeliveryStatus, string> = {
-  [DELIVERY_STATUS.PENDING_ASSIGNMENT]: 'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300',
+  [DELIVERY_STATUS.PENDING_ASSIGNMENT]:
+    'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300',
   [DELIVERY_STATUS.ASSIGNED]: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   [DELIVERY_STATUS.ACCEPTED]: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300',
   [DELIVERY_STATUS.PICKED_UP]: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300',
-  [DELIVERY_STATUS.OUT_FOR_DELIVERY]: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
-  [DELIVERY_STATUS.ARRIVED]: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-  [DELIVERY_STATUS.DELIVERED]: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  [DELIVERY_STATUS.OUT_FOR_DELIVERY]:
+    'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
+  [DELIVERY_STATUS.ARRIVED]:
+    'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+  [DELIVERY_STATUS.DELIVERED]:
+    'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   [DELIVERY_STATUS.CANCELLED]: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
 }
 
@@ -100,14 +106,20 @@ export function getDeliveryStatusLabel(status: string): string {
  * Helper para obtener los colores de un estado de orden
  */
 export function getOrderStatusColor(status: string): string {
-  return ORDER_STATUS_COLORS[status as OrderStatus] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  return (
+    ORDER_STATUS_COLORS[status as OrderStatus] ||
+    'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  )
 }
 
 /**
  * Helper para obtener los colores de un estado de entrega
  */
 export function getDeliveryStatusColor(status: string): string {
-  return DELIVERY_STATUS_COLORS[status as DeliveryStatus] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  return (
+    DELIVERY_STATUS_COLORS[status as DeliveryStatus] ||
+    'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  )
 }
 
 /**
@@ -125,7 +137,6 @@ export function isChatEnabled(deliveryStatus: string): boolean {
  */
 export function isDeliveryActive(deliveryStatus: string): boolean {
   return (
-    deliveryStatus !== DELIVERY_STATUS.DELIVERED &&
-    deliveryStatus !== DELIVERY_STATUS.CANCELLED
+    deliveryStatus !== DELIVERY_STATUS.DELIVERED && deliveryStatus !== DELIVERY_STATUS.CANCELLED
   )
 }
