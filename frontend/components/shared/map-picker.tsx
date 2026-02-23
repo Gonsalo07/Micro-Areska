@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapPin, Search, AlertCircle, CheckCircle2 } from 'lucide-react'
+
+import { AlertCircle, CheckCircle2, MapPin, Search } from 'lucide-react'
 
 declare global {
   interface Window {
@@ -22,14 +23,9 @@ export interface MapPickerAddressComponents {
 interface MapPickerProps {
   initialLat?: number
   initialLng?: number
-  onLocationSelect: (
-    lat: number,
-    lng: number,
-    components: MapPickerAddressComponents
-  ) => void
+  onLocationSelect: (lat: number, lng: number, components: MapPickerAddressComponents) => void
 }
 
-// Centro y límites de Lima
 const LIMA_CENTER = { lat: -12.0464, lng: -77.0428 }
 const LIMA_BOUNDS = { north: -11.6, south: -12.55, east: -76.6, west: -77.35 }
 
@@ -77,33 +73,32 @@ export function MapPicker({ initialLat, initialLng, onLocationSelect }: MapPicke
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
     if (!apiKey) {
-      setIsLoading(false)
+      queueMicrotask(() => setIsLoading(false))
       return
     }
 
     const reverseGeocode = (lat: number, lng: number) => {
       if (!geocoderRef.current) return
-      geocoderRef.current.geocode(
-        { location: { lat, lng } },
-        (results: any[], status: string) => {
-          if (status !== 'OK' || !results?.[0]) return
-          const components = parseAddressComponents(results[0])
-          if (!isInLima(components)) {
-            setOutsideLima(true)
-            setSelectedAddress(null)
-            mapInstanceRef.current?.panTo(LIMA_CENTER)
-            markerRef.current?.setVisible(false)
-            return
-          }
-          setOutsideLima(false)
-          setSelectedAddress(components.fullAddress)
-          onLocationSelect(lat, lng, components)
+      geocoderRef.current.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+        if (status !== 'OK' || !results?.[0]) return
+        const components = parseAddressComponents(results[0])
+        if (!isInLima(components)) {
+          setOutsideLima(true)
+          setSelectedAddress(null)
+          mapInstanceRef.current?.panTo(LIMA_CENTER)
+          markerRef.current?.setVisible(false)
+          return
         }
-      )
+        setOutsideLima(false)
+        setSelectedAddress(components.fullAddress)
+        onLocationSelect(lat, lng, components)
+      })
     }
 
-    // ── Inicializar Places Autocomplete (siempre después de que el input esté montado) ──
-    const initAutocomplete = (mapInstance: any, placeMarkerFn: (lat: number, lng: number) => void) => {
+    const initAutocomplete = (
+      mapInstance: any,
+      placeMarkerFn: (lat: number, lng: number) => void
+    ) => {
       if (!inputRef.current || !window.google?.maps?.places) return
 
       const bounds = new window.google.maps.LatLngBounds(
@@ -143,13 +138,11 @@ export function MapPicker({ initialLat, initialLng, onLocationSelect }: MapPicke
       })
     }
 
-    // Reemplazar initMap para pasar placeMarker y llamar initAutocomplete al final
     const initMapAndAutocomplete = () => {
       if (!mapRef.current || isInitializedRef.current) return
       isInitializedRef.current = true
 
-      const center =
-        initialLat && initialLng ? { lat: initialLat, lng: initialLng } : LIMA_CENTER
+      const center = initialLat && initialLng ? { lat: initialLat, lng: initialLng } : LIMA_CENTER
 
       const map = new window.google.maps.Map(mapRef.current, {
         center,
@@ -158,7 +151,11 @@ export function MapPicker({ initialLat, initialLng, onLocationSelect }: MapPicke
         streetViewControl: false,
         fullscreenControl: false,
         styles: [
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }],
+          },
         ],
       })
       mapInstanceRef.current = map
@@ -192,7 +189,6 @@ export function MapPicker({ initialLat, initialLng, onLocationSelect }: MapPicke
         reverseGeocode(e.latLng.lat(), e.latLng.lng())
       })
 
-      // Inicializar autocomplete con referencias locales correctas
       initAutocomplete(map, localPlaceMarker)
       setIsLoading(false)
     }
@@ -231,7 +227,6 @@ export function MapPicker({ initialLat, initialLng, onLocationSelect }: MapPicke
           placeholder="Busca tu dirección en Lima..."
           className="w-full rounded-md border bg-background pl-9 pr-4 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 placeholder:text-muted-foreground"
           onKeyDown={(e) => {
-            // Evitar que Enter propague al form y lo envíe
             if (e.key === 'Enter') {
               e.preventDefault()
               e.stopPropagation()
