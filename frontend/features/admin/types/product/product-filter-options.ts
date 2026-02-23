@@ -1,7 +1,7 @@
-import type { Option } from '@/lib/schemas/common/option.schema'
+// import type { Option } from '@/lib/schemas/common/option.schema'
 
-export interface ProductFilterOptions {
-  categories: Option[]
-}
+// export interface ProductFilterOptions {
+//   categories: Option[]
+// }
 
-export type ProductFilterOptionsParams = Partial<ProductFilterOptions>
+// export type ProductFilterOptionsParams = Partial<ProductFilterOptions>
