@@ -55,7 +55,6 @@ export function TableListLayout<TData, TValue>({
   filterCount,
   onCreate,
   onRefresh,
-  getRowHref,
   onRowClick,
   isRefetching = false,
   isFetchingData = false,
