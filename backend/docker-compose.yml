@@ -16,6 +16,7 @@ services:
       - "5432:5432"
     volumes:
       - ./database:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - areska-network
 
@@ -171,7 +172,7 @@ services:
       dockerfile: Dockerfile
     container_name: order-service
     ports:
-      - "8080:8080"
+      - "8084:8084"
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
@@ -184,6 +185,7 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: guest
       RABBITMQ_PASSWORD: guest
+      ORDER_SERVICE_PORT: 8084
       # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-order-service
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
@@ -289,6 +291,47 @@ services:
     networks:
       - areska-network
 
+  # ==========================================
+  # Observabilidad
+  # ==========================================
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - payment-service
+      - delivery-service
+      - gateway-service
+    networks:
+      - areska-network
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: grafana
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    depends_on:
+      - prometheus
+    networks:
+      - areska-network
+
 networks:
   areska-network:
     driver: bridge
+
+volumes:
+  postgres_data:

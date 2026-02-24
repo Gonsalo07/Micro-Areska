@@ -51,12 +51,6 @@ export const SidebarWrapper = () => {
                 href="/en-ruta"
               />
               <SidebarItem
-                isActive={pathname === "/mensajes"}
-                title="Mensajes"
-                icon={<PaymentsIcon />}
-                href="/mensajes"
-              />
-              <SidebarItem
                 isActive={pathname === "/historial"}
                 title="Historial"
                 icon={<ReportsIcon />}
@@ -86,7 +80,7 @@ export const SidebarWrapper = () => {
             </Tooltip>
             <Tooltip content={"Profile"} color="primary">
               <Avatar
-                src="https://i.pravatar.cc/150?u=a042581f4e29026704d"
+                src="/casco.jpeg"
                 size="sm"
               />
             </Tooltip>

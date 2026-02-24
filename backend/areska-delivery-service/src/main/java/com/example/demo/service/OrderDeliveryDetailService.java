@@ -12,6 +12,7 @@ import com.example.demo.dto.NewOrderNotification;
 import com.example.demo.dto.OrderDeliveryDetailRequest;
 import com.example.demo.dto.OrderDeliveryDetailResponse;
 import com.example.demo.dto.OrderDeliveryDetailUpdateRequest;
+import com.example.demo.dto.OrderStatusUpdate;
 import com.example.demo.model.DeliveryDriver;
 import com.example.demo.model.DeliveryStatus;
 import com.example.demo.model.OrderDeliveryDetail;
@@ -146,8 +147,9 @@ public class OrderDeliveryDetailService {
                 .orElseThrow(() -> new ResourceNotFoundException("Driver not found with ID: " + driverId));
 
         detail.setDeliveryDriver(driver);
-        detail.setStatus(DeliveryStatus.ASSIGNED.getValue());
+        detail.setStatus(DeliveryStatus.ACCEPTED.getValue());
         detail.setAssignedAt(LocalDateTime.now());
+        detail.setAcceptedAt(LocalDateTime.now());
         repository.save(detail);
 
         // Bloquear al driver para no recibir más órdenes mientras esté en ruta
@@ -318,7 +320,19 @@ public class OrderDeliveryDetailService {
         String topic = "/topic/order/" + detail.getOrderId() + "/tracking";
         messagingTemplate.convertAndSend(topic, payload);
         log.info("Published tracking update for order {} → {} to {}", detail.getOrderId(), newStatus.getValue(), topic);
-    }
+        // Publicar también actualización de orden en estados terminales
+        if (newStatus == DeliveryStatus.DELIVERED || newStatus == DeliveryStatus.CANCELLED) {
+            String orderStatus      = newStatus == DeliveryStatus.DELIVERED ? "completed" : "cancelled";
+            String orderStatusLabel = newStatus == DeliveryStatus.DELIVERED ? "Completado" : "Cancelado";
+            String orderMessage     = newStatus == DeliveryStatus.DELIVERED
+                    ? "¡Tu pedido fue entregado exitosamente!"
+                    : "Tu pedido fue cancelado.";
+            OrderStatusUpdate orderPayload = new OrderStatusUpdate(
+                    detail.getOrderId(), orderStatus, orderStatusLabel, orderMessage, LocalDateTime.now());
+            String orderTopic = "/topic/order/" + detail.getOrderId() + "/status";
+            messagingTemplate.convertAndSend(orderTopic, orderPayload);
+            log.info("Published order status update for order {} \u2192 {} to {}", detail.getOrderId(), orderStatus, orderTopic);
+        }    }
 
     private OrderDeliveryDetailResponse toResponse(OrderDeliveryDetail d) {
         DeliveryDriver driver = d.getDeliveryDriver();

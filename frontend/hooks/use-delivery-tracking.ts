@@ -95,8 +95,8 @@ export const useOrderTracking = ({
     deliveryClient.activate()
     deliveryClientRef.current = deliveryClient
 
-    // ── Conexión 2: ws → estados de la orden ─────────────────────────────
-    const orderClient = createStompClient(`${config.api.baseUrl}/ws`)
+    // ── Conexión 2: delivery-ws → estados finales de la orden (completed / cancelled) ───
+    const orderClient = createStompClient(`${config.api.baseUrl}/delivery-ws`)
 
     orderClient.onConnect = () => {
       console.log('✅ [Tracking/order-ws] conectado, orden:', orderId)
