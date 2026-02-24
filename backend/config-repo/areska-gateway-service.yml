@@ -120,3 +120,18 @@ firebase:
   client-email: ${FIREBASE_CLIENT_EMAIL:}
   client-id: ${FIREBASE_CLIENT_ID:}
 
+# Actuator / Prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: areska-gateway-service
+
