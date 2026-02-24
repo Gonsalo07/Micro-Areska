@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chip } from "@nextui-org/react";
+import { Chip, Button, Switch } from "@nextui-org/react";
 import type { OrderDeliveryDetailResponse, DeliveryStatus } from "@/lib/types/order";
 import { useDeliveryLocationSender } from "@/hooks/use-delivery-location-sender";
 
@@ -35,12 +35,21 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
   const directionsServiceRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
   const mapInitializedRef = useRef<boolean>(false);
-  const hasInitialFitRef = useRef<boolean>(false); // Solo hacer fitBounds una vez
+  const hasInitialFitRef = useRef<boolean>(false);
   const [distance, setDistance] = useState<string>("");
-  const [duration, setDuration] = useState<string>("");;
+  const [duration, setDuration] = useState<string>("");
   
   // Guardar última ubicación pendiente para reenviar cuando conecte
   const pendingLocationRef = useRef<{lat: number, lng: number, distance: string, duration: string} | null>(null);
+
+  // === TEST MODE ===
+  const [testMode, setTestMode] = useState(true);
+  const testModeRef = useRef(true);
+  const startTrackingRef = useRef<(() => void) | null>(null);
+  const simStepRef = useRef<number>(0);
+  const [simStep, setSimStep] = useState(0);          // solo para display
+  const triggerSimMoveRef = useRef<(() => void) | null>(null);
+  const routePathRef = useRef<{lat: number; lng: number}[]>([]);  // puntos reales de la ruta
 
   // WebSocket para enviar ubicación en tiempo real
   const { 
@@ -50,7 +59,7 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
   } = useDeliveryLocationSender({
     deliveryId: delivery?.id,
     orderId: delivery?.orderId,
-    enabled: !!delivery && ['OUT_FOR_DELIVERY', 'ARRIVED'].includes(delivery.status),
+    enabled: !!delivery && ['ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'ARRIVED'].includes(delivery.status),
   });
 
   console.log('🔍 Estado del delivery:', {
@@ -262,7 +271,16 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
                 if (route && route.legs[0]) {
                   const calculatedDistance = route.legs[0].distance.text;
                   const calculatedDuration = route.legs[0].duration.text;
-                  
+
+                  // Guardar puntos reales de la ruta para simulación paso a paso
+                  if (route.overview_path && routePathRef.current.length === 0) {
+                    routePathRef.current = route.overview_path.map((p: any) => ({
+                      lat: p.lat(),
+                      lng: p.lng(),
+                    }));
+                    console.log(`🗺️ Ruta guardada: ${routePathRef.current.length} puntos`);
+                  }
+
                   setDistance(calculatedDistance);
                   setDuration(calculatedDuration);
                   console.log("✅ Ruta calculada:", calculatedDistance, calculatedDuration);
@@ -317,103 +335,99 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
 
     // Función para iniciar el seguimiento de ubicación
     function startLocationTracking() {
-      if (!navigator.geolocation) {
-        console.error("Geolocalización no soportada");
+      // Limpiar tracking anterior si existía
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+
+      if (testModeRef.current) {
+        // ===== MODO TEST: posición inicial fija, el botón mueve manualmente =====
+        const testLocation = {
+          coords: { latitude: -12.050385, longitude: -77.000823, accuracy: 10,
+            altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+          timestamp: Date.now(),
+        } as GeolocationPosition;
+        console.log("🧪 [TEST MODE] Posición inicial colocada. Usa el botón para mover.");
+        updateDriverLocation(testLocation);
+        // watchIdRef queda null — sin actualización automática
+      } else {
+        // ===== MODO REAL: GPS del dispositivo =====
+        if (!navigator.geolocation) {
+          console.error("Geolocalización no soportada");
+          return;
+        }
+        console.log("📡 [GPS MODE] Iniciando seguimiento real de ubicación...");
+        simStepRef.current = 0; // reset por si vuelve a test
+        navigator.geolocation.getCurrentPosition(
+          updateDriverLocation,
+          (error) => console.error("Error obteniendo ubicación:", error),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          updateDriverLocation,
+          (error) => console.error("Error actualizando ubicación:", error),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+      }
+    }
+
+    // Exponer startTracking para poder relanzarlo cuando cambie testMode
+    startTrackingRef.current = startLocationTracking;
+
+    // Exponer función de simulación manual al ref externo
+    triggerSimMoveRef.current = () => {
+      const path = routePathRef.current;
+
+      // Si la ruta real ya está cargada, avanzar por sus puntos
+      if (path.length > 1) {
+        // Avanzar de 2 en 2 puntos para que se note el movimiento
+        simStepRef.current = Math.min(simStepRef.current + 2, path.length - 1);
+        setSimStep(simStepRef.current);
+        const point = path[simStepRef.current];
+        const totalPoints = path.length - 1;
+        const pct = Math.round((simStepRef.current / totalPoints) * 100);
+        const fakeDist = `${((1 - simStepRef.current / totalPoints) * 2.0).toFixed(1)} km`;
+        console.log(`🚗 [TEST] Punto ${simStepRef.current}/${totalPoints} (${pct}%) → Lat: ${point.lat.toFixed(6)}, Lng: ${point.lng.toFixed(6)}`);
+        const fakePosition = {
+          coords: { latitude: point.lat, longitude: point.lng, accuracy: 10,
+            altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+          timestamp: Date.now(),
+        } as GeolocationPosition;
+        updateDriverLocation(fakePosition);
+        sendLocationRef.current?.(point.lat, point.lng, fakeDist, '---');
         return;
       }
 
-      // ========== UBICACIÓN DE PRUEBA - BORRAR DESPUÉS ==========
-      // Coordenadas de prueba en CDMX (cerca de Reforma)
-      const testLocation = {
-        coords: {
-          latitude: -12.050385, // Puedes cambiar estas coordenadas
-          longitude: -77.000823,
-          accuracy: 10,
-          altitude: null,
-          altitudeAccuracy: null,
-          heading: null,
-          speed: null,
-        },
+      // Fallback: interpolación lineal mientras la ruta no esté lista
+      simStepRef.current += 1;
+      setSimStep(simStepRef.current);
+      const START_LAT = -12.050385;
+      const START_LNG = -77.000823;
+      const destLat = delivery?.destinationLat ?? (START_LAT + 0.02);
+      const destLng = delivery?.destinationLng ?? (START_LNG + 0.02);
+      const TOTAL_SIM_STEPS = 20;
+      const fraction = Math.min(simStepRef.current / TOTAL_SIM_STEPS, 1.0);
+      const newLat = START_LAT + fraction * (destLat - START_LAT);
+      const newLng = START_LNG + fraction * (destLng - START_LNG);
+      console.log(`🚗 [TEST-fallback] Paso ${simStepRef.current} (ruta aún no cargada)`);
+      const fakePosition = {
+        coords: { latitude: newLat, longitude: newLng, accuracy: 10,
+          altitude: null, altitudeAccuracy: null, heading: null, speed: null },
         timestamp: Date.now(),
       } as GeolocationPosition;
-      
-      console.log("🧪 USANDO UBICACIÓN DE PRUEBA:", testLocation.coords.latitude, testLocation.coords.longitude);
-      updateDriverLocation(testLocation);
-      
-      // Simular movimiento cada 30 segundos (moverse un poco)
-      let latOffset = 0;
-      watchIdRef.current = window.setInterval(() => {
-        latOffset += 0.001; // Moverse ~111 metros al norte cada 30s
-        const movingLocation = {
-          coords: {
-            ...testLocation.coords,
-            latitude: testLocation.coords.latitude + latOffset,
-          },
-          timestamp: Date.now(),
-        } as GeolocationPosition;
-        console.log("🚗 Movimiento simulado:", movingLocation.coords.latitude, movingLocation.coords.longitude);
-        updateDriverLocation(movingLocation);
-      }, 30000) as unknown as number;
-      // ========== FIN UBICACIÓN DE PRUEBA ==========
-
-      /* // CÓDIGO REAL - DESCOMENTAR CUANDO FUNCIONE EL GPS
-      // Obtener ubicación inicial
-      navigator.geolocation.getCurrentPosition(
-        updateDriverLocation,
-        (error) => {
-          console.error("Error obteniendo ubicación:", error);
-          // Usar ubicación por defecto si falla
-          updateDriverLocation({
-            coords: {
-              latitude: 19.4326,
-              longitude: -99.1332,
-              accuracy: 0,
-              altitude: null,
-              altitudeAccuracy: null,
-              heading: null,
-              speed: null,
-            },
-            timestamp: Date.now(),
-          } as GeolocationPosition);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
-
-      // Actualizar ubicación cada 30 segundos
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        updateDriverLocation,
-        (error) => console.error("Error actualizando ubicación:", error),
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 30000, // Cache por 30 segundos
-        }
-      );
-      */ // FIN CÓDIGO REAL
-    }
+      updateDriverLocation(fakePosition);
+      sendLocationRef.current?.(newLat, newLng, `${((1 - fraction) * 2.0).toFixed(1)} km`, '---');
+    };
 
     initMap();
 
     return () => {
       console.log("🗺️ Limpiando mapa y recursos");
-      
-      // Limpiar seguimiento de ubicación
       if (watchIdRef.current !== null) {
-        // ========== BORRAR DESPUÉS - Para pruebas ==========
-        window.clearInterval(watchIdRef.current); // Para el setInterval de prueba
-        // ========== FIN BORRAR ==========
-        
-        /* // CÓDIGO REAL - DESCOMENTAR CUANDO FUNCIONE EL GPS
         navigator.geolocation.clearWatch(watchIdRef.current);
-        */ // FIN CÓDIGO REAL
-        
         watchIdRef.current = null;
       }
-      
       mapInitializedRef.current = false;
       mapInstanceRef.current = null;
       driverMarkerRef.current = null;
@@ -421,7 +435,24 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
       directionsRendererRef.current = null;
       directionsServiceRef.current = null;
     };
-  }, [delivery?.id]); // Solo depender del ID del delivery
+  }, [delivery?.id]);
+
+  // Cuando cambia el switch: relanzar tracking sin re-inicializar el mapa
+  useEffect(() => {
+    testModeRef.current = testMode;
+    simStepRef.current = 0;
+    setSimStep(0);
+    routePathRef.current = [];  // forzar re-descarga de ruta al cambiar de modo
+    // Limpiar GPS real si estaba activo
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    // Si el mapa ya está listo, relanzar tracking con el nuevo modo
+    if (mapInitializedRef.current && startTrackingRef.current) {
+      startTrackingRef.current();
+    }
+  }, [testMode]); // Solo depender del ID del delivery
 
   if (!delivery) {
     return (
@@ -489,8 +520,40 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             <span className="font-medium">📝 Nota del cliente:</span> {delivery.customerNotes}
           </div>
         )}
+
+        {/* Switch TEST / GPS + botón de simulación */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <Switch
+            size="sm"
+            color="warning"
+            isSelected={testMode}
+            onValueChange={setTestMode}
+          >
+            <span className="text-xs font-mono">{testMode ? '🧪 Modo TEST' : '📡 GPS Real'}</span>
+          </Switch>
+
+          {testMode && (
+            <Button
+              size="sm"
+              variant="flat"
+              color="warning"
+              className="text-xs font-mono flex-1"
+              startContent="🚗"
+              onPress={() => triggerSimMoveRef.current?.()}
+            >
+              Simular movimiento ({simStep}/{routePathRef.current.length > 1 ? routePathRef.current.length - 1 : 20})
+            </Button>
+          )}
+
+          <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+            isConnected ? 'bg-success/10 text-success-600' : 'bg-default-100 text-default-400'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-default-300'}`} />
+            {isConnected ? 'WS ON' : 'WS OFF'}
+          </div>
+        </div>
       </div>
-      <div ref={mapRef} className="flex-1 min-h-[400px] rounded-b-lg" />
+      <div ref={mapRef} className="flex-1 min-h-0 rounded-b-lg" />
     </div>
   );
 };

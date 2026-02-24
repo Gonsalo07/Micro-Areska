@@ -57,6 +57,8 @@ export const Login = () => {
               <Input
                 variant='bordered'
                 label='Correo electrónico'
+                labelPlacement='outside'
+                placeholder='correo@ejemplo.com'
                 type='email'
                 value={values.email}
                 isInvalid={!!errors.email && !!touched.email}
@@ -67,6 +69,8 @@ export const Login = () => {
               <Input
                 variant='bordered'
                 label='Contraseña'
+                labelPlacement='outside'
+                placeholder='Tu contraseña'
                 type='password'
                 value={values.password}
                 isInvalid={!!errors.password && !!touched.password}

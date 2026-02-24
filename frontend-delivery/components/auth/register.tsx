@@ -59,6 +59,8 @@ export const Register = () => {
               <Input
                 variant='bordered'
                 label='Nombre completo'
+                labelPlacement='outside'
+                placeholder='Tu nombre completo'
                 value={values.name}
                 isInvalid={!!errors.name && !!touched.name}
                 errorMessage={errors.name}
@@ -68,6 +70,8 @@ export const Register = () => {
               <Input
                 variant='bordered'
                 label='Correo electrónico'
+                labelPlacement='outside'
+                placeholder='correo@ejemplo.com'
                 type='email'
                 value={values.email}
                 isInvalid={!!errors.email && !!touched.email}
@@ -78,6 +82,8 @@ export const Register = () => {
               <Input
                 variant='bordered'
                 label='Contraseña'
+                labelPlacement='outside'
+                placeholder='Tu contraseña'
                 type='password'
                 value={values.password}
                 isInvalid={!!errors.password && !!touched.password}
@@ -88,6 +94,8 @@ export const Register = () => {
               <Input
                 variant='bordered'
                 label='Confirmar contraseña'
+                labelPlacement='outside'
+                placeholder='Repite tu contraseña'
                 type='password'
                 value={values.confirmPassword}
                 isInvalid={

@@ -31,7 +31,7 @@ export const UserDropdown = () => {
           <Avatar
             color='secondary'
             size='md'
-            src='https://i.pravatar.cc/150?u=a042581f4e29026704d'
+            src='/casco.jpeg'
           />
         </Button>
       </DropdownTrigger>
