@@ -34,23 +34,14 @@ backend/areska-gateway-service/firebase-service-account.json
 cd backend
 docker compose up -d
 ```
-Espera ~2 minutos. Verifica el estado con:
+El orden de arranque es automático gracias a los healthchecks. Espera ~3-4 minutos a que todos los servicios estén listos. Verifica el estado con:
 ```powershell
 docker compose ps
 ```
-
-> **⚠️ El orden de arranque es manual.** Después de `docker compose up -d`, espera que cada grupo esté listo antes de que el siguiente funcione correctamente:
-> 1. `postgres`, `rabbitmq`, `zookeeper`, `zipkin`
-> 2. `config-server`, `kafka`
-> 3. `eureka-server`
-> 4. `user`, `product`, `order`, `payment`, `delivery`
-> 5. `gateway-service`
-> 6. `prometheus`, `grafana`
->
-> Si algún servicio falla al iniciar, espera unos segundos y reinícialo con:
-> ```powershell
-> docker restart <nombre-contenedor>
-> ```
+Para seguir los logs en tiempo real de un servicio específico:
+```powershell
+docker compose logs -f <nombre-contenedor>
+```
 
 ### Opción B — Script PowerShell
 ```powershell

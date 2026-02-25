@@ -75,8 +75,8 @@ Write-Host ""
 Write-Host "   Esperando 20 segundos para que los servicios base esten listos..." -ForegroundColor Gray
 Start-Sleep -Seconds 20
 
-Write-Host "5. Iniciando Order Service (puerto 8080)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-order-service'; Write-Host 'Order Service - Puerto 8080' -ForegroundColor Cyan; ./mvnw spring-boot:run"
+Write-Host "5. Iniciando Order Service (puerto 8084)..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\areska-order-service'; Write-Host 'Order Service - Puerto 8084' -ForegroundColor Cyan; ./mvnw spring-boot:run"
 Start-Sleep -Seconds 5
 Write-Host "   [OK] Order Service iniciado" -ForegroundColor Green
 Write-Host ""
@@ -113,7 +113,7 @@ Write-Host ""
 Write-Host "Swagger UI de cada servicio:" -ForegroundColor Yellow
 Write-Host "  - User: http://localhost:8081/swagger-ui.html" -ForegroundColor White
 Write-Host "  - Product: http://localhost:8082/swagger-ui.html (incluye Categories)" -ForegroundColor White
-Write-Host "  - Order: http://localhost:8080/swagger-ui.html" -ForegroundColor White
+Write-Host "  - Order: http://localhost:8084/swagger-ui.html" -ForegroundColor White
 Write-Host "  - Payment: http://localhost:8083/swagger-ui.html" -ForegroundColor White
 Write-Host "  - Delivery: http://localhost:8085/swagger-ui.html" -ForegroundColor White
 Write-Host ""

@@ -1,22 +1,24 @@
 version: '3.8'
 
 services:
-  # ==========================================
-  # Infraestructura Base
-  # ==========================================
-  
   postgres:
     image: postgres:15-alpine
     container_name: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: rootsql
+      POSTGRES_USER: ${DB_USERNAME_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD_USER:-rootsql}
       POSTGRES_DB: areska
     ports:
       - "5432:5432"
     volumes:
       - ./database:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - areska-network
 
@@ -29,6 +31,12 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - areska-network
 
@@ -37,6 +45,12 @@ services:
     container_name: zipkin
     ports:
       - "9411:9411"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9411/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - areska-network
 
@@ -48,6 +62,12 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 1 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - areska-network
 
@@ -57,7 +77,8 @@ services:
     ports:
       - "9092:9092"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -66,15 +87,17 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - areska-network
 
-  # ==========================================
-  # Servicios de Configuración y Descubrimiento
-  # ==========================================
-
   config-server:
-    build: 
+    build:
       context: ./areska-config-server
       dockerfile: Dockerfile
     container_name: config-server
@@ -86,12 +109,17 @@ services:
       SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/app/config-repo/
     volumes:
       - ./config-repo:/app/config-repo
-
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     networks:
       - areska-network
 
   eureka-server:
-    build: 
+    build:
       context: ./areska-eureka-server
       dockerfile: Dockerfile
     container_name: eureka-server
@@ -102,16 +130,19 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     networks:
       - areska-network
 
-  # ==========================================
-  # Servicios de Dominio
-  # ==========================================
-
   user-service:
-    build: 
+    build:
       context: ./areska-user-service
       dockerfile: Dockerfile
     container_name: user-service
@@ -123,23 +154,30 @@ services:
       DB_HOST_USER: postgres
       DB_PORT_USER: 5432
       DB_NAME_USER: areska
-      DB_USERNAME_USER: postgres
-      DB_PASSWORD_USER: rootsql
-      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      DB_USERNAME_USER: ${DB_USERNAME_USER:-postgres}
+      DB_PASSWORD_USER: ${DB_PASSWORD_USER:-rootsql}
       SPRING_APPLICATION_NAME: areska-user-service
-      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
       SPRING_CLOUD_CONFIG_FAIL_FAST: true
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - areska-network
 
   product-service:
-    build: 
+    build:
       context: ./areska-product-service
       dockerfile: Dockerfile
     container_name: product-service
@@ -151,23 +189,30 @@ services:
       DB_HOST_PRODUCT: postgres
       DB_PORT_PRODUCT: 5432
       DB_NAME_PRODUCT: areska
-      DB_USERNAME_PRODUCT: postgres
-      DB_PASSWORD_PRODUCT: rootsql
-      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      DB_USERNAME_PRODUCT: ${DB_USERNAME_USER:-postgres}
+      DB_PASSWORD_PRODUCT: ${DB_PASSWORD_PRODUCT:-rootsql}
       SPRING_APPLICATION_NAME: areska-product-service
-      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
       SPRING_CLOUD_CONFIG_FAIL_FAST: true
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - areska-network
 
   order-service:
-    build: 
+    build:
       context: ./areska-order-service
       dockerfile: Dockerfile
     container_name: order-service
@@ -179,29 +224,37 @@ services:
       DB_HOST_ORDER: postgres
       DB_PORT_ORDER: 5432
       DB_NAME_ORDER: areska
-      DB_USERNAME_ORDER: postgres
-      DB_PASSWORD_ORDER: rootsql
+      DB_USERNAME_ORDER: ${DB_USERNAME_USER:-postgres}
+      DB_PASSWORD_ORDER: ${DB_PASSWORD_ORDER:-rootsql}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
-      RABBITMQ_USER: guest
-      RABBITMQ_PASSWORD: guest
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       ORDER_SERVICE_PORT: 8084
-      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-order-service
-      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
       SPRING_CLOUD_CONFIG_FAIL_FAST: true
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
-      - rabbitmq
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8084/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - areska-network
-  
+
   payment-service:
-    build: 
+    build:
       context: ./areska-payment-service
       dockerfile: Dockerfile
     container_name: payment-service
@@ -213,23 +266,30 @@ services:
       DB_HOST_PAYMENT: postgres
       DB_PORT_PAYMENT: 5432
       DB_NAME_PAYMENT: areska
-      DB_USERNAME_PAYMENT: postgres
-      DB_PASSWORD_PAYMENT: rootsql
-      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      DB_USERNAME_PAYMENT: ${DB_USERNAME_USER:-postgres}
+      DB_PASSWORD_PAYMENT: ${DB_PASSWORD_PAYMENT:-rootsql}
       SPRING_APPLICATION_NAME: areska-payment-service
-      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
       SPRING_CLOUD_CONFIG_FAIL_FAST: true
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8083/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - areska-network
 
   delivery-service:
-    build: 
+    build:
       context: ./areska-delivery-service
       dockerfile: Dockerfile
     container_name: delivery-service
@@ -241,28 +301,36 @@ services:
       DB_HOST_DELIVERY: postgres
       DB_PORT_DELIVERY: 5432
       DB_NAME_DELIVERY: areska
-      DB_USERNAME_DELIVERY: postgres
-      DB_PASSWORD_DELIVERY: rootsql
-      # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
+      DB_USERNAME_DELIVERY: ${DB_USERNAME_USER:-postgres}
+      DB_PASSWORD_DELIVERY: ${DB_PASSWORD_DELIVERY:-rootsql}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       SPRING_APPLICATION_NAME: areska-delivery-service
-      # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces
       SPRING_CLOUD_CONFIG_FAIL_FAST: true
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
-      - rabbitmq
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - areska-network
 
-  # ==========================================
-  # API Gateway
-  # ==========================================
-
   gateway-service:
-    build: 
+    build:
       context: ./areska-gateway-service
       dockerfile: Dockerfile
     container_name: gateway-service
@@ -275,19 +343,20 @@ services:
       FIREBASE_CONFIG_PATH: /app/firebase-service-account.json
       EUREKA_USE_IP: "true"
     volumes:
-      - ./areska-gateway-service/firebase-service-account.json:/app/firebase-service-account.json
+      - ./areska-gateway-service/firebase-service-account.json:/app/firebase-service-account.json:ro
     depends_on:
-      - config-server
-      - eureka-server
-      - user-service
-      - product-service
-      - order-service
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
     networks:
       - areska-network
-
-  # ==========================================
-  # Observabilidad
-  # ==========================================
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -300,12 +369,18 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
     depends_on:
-      - user-service
-      - product-service
-      - order-service
-      - payment-service
-      - delivery-service
-      - gateway-service
+      user-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      delivery-service:
+        condition: service_healthy
+      gateway-service:
+        condition: service_started
     networks:
       - areska-network
 
@@ -315,8 +390,8 @@ services:
     ports:
       - "3030:3000"
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
       GF_USERS_ALLOW_SIGN_UP: "false"
     depends_on:
       - prometheus

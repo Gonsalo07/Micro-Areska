@@ -2,10 +2,6 @@ SET search_path TO public;
 
 BEGIN;
 
--- ==============================
--- USERS (SOLO CLIENTE / ADMIN)
--- ==============================
-
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
@@ -17,17 +13,13 @@ CREATE TABLE users (
     auth_provider VARCHAR(32),
     email_verified BOOLEAN DEFAULT FALSE,
     photo_url TEXT,
-    role VARCHAR(20) NOT NULL DEFAULT 'CLIENTE' 
+    role VARCHAR(20) NOT NULL DEFAULT 'CLIENTE'
         CHECK (role IN ('CLIENTE', 'ADMIN')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL
 );
 
 CREATE INDEX idx_users_role ON users(role);
-
--- ==============================
--- DELIVERY DRIVERS (TERCERIZADO)
--- ==============================
 
 CREATE TABLE delivery_drivers (
     id SERIAL PRIMARY KEY,
@@ -54,9 +46,6 @@ CREATE INDEX idx_delivery_available ON delivery_drivers(is_available);
 CREATE INDEX idx_delivery_active ON delivery_drivers(is_active);
 CREATE INDEX idx_delivery_company ON delivery_drivers(company_name);
 CREATE INDEX idx_delivery_firebase_uid ON delivery_drivers(firebase_uid);
--- ==============================
--- CATEGORIES
--- ==============================
 
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
@@ -67,10 +56,6 @@ CREATE TABLE categories (
 );
 
 CREATE INDEX idx_categories_slug ON categories(slug);
-
--- ==============================
--- PRODUCTS
--- ==============================
 
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
@@ -89,10 +74,6 @@ CREATE TABLE products (
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_price ON products(price);
 
--- ==============================
--- PRODUCT IMAGES
--- ==============================
-
 CREATE TABLE product_images (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES products(id) ON DELETE CASCADE,
@@ -102,10 +83,6 @@ CREATE TABLE product_images (
 );
 
 CREATE INDEX idx_product_images_product ON product_images(product_id);
-
--- ==============================
--- PRODUCT COLORS
--- ==============================
 
 CREATE TABLE product_colors (
     id SERIAL PRIMARY KEY,
@@ -117,10 +94,6 @@ CREATE TABLE product_colors (
 
 CREATE INDEX idx_product_colors_product ON product_colors(product_id);
 
--- ==============================
--- PRODUCT SIZES
--- ==============================
-
 CREATE TABLE product_sizes (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES products(id) ON DELETE CASCADE,
@@ -130,10 +103,6 @@ CREATE TABLE product_sizes (
 
 CREATE INDEX idx_product_sizes_product ON product_sizes(product_id);
 
--- ==============================
--- PRODUCT FEATURES
--- ==============================
-
 CREATE TABLE product_features (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES products(id) ON DELETE CASCADE,
@@ -142,30 +111,6 @@ CREATE TABLE product_features (
 );
 
 CREATE INDEX idx_product_features_product ON product_features(product_id);
-
--- ==============================
--- ORDERS
--- ==============================
--- Estados de orden (status):
---   'pending'    - Pedido recién creado, pendiente de confirmación
---   'confirmed'  - Pedido confirmado y en preparación
---   'preparing'  - Pedido siendo preparado en cocina/almacén
---   'ready'      - Pedido listo para ser recogido o entregado
---   'completed'  - Pedido completado exitosamente
---   'cancelled'  - Pedido cancelado
---
--- Estados de entrega (delivery_status):
---   'PENDING_ASSIGNMENT' - Pendiente de asignación a repartidor
---   'ASSIGNED'           - Asignado a repartidor, esperando aceptación
---   'ACCEPTED'           - Repartidor aceptó el pedido
---   'OUT_FOR_DELIVERY'   - Repartidor en camino (chat habilitado)
---   'ARRIVED'            - Repartidor llegó al destino (chat habilitado)
---   'DELIVERED'          - Pedido entregado (chat deshabilitado)
---   'CANCELLED'          - Entrega cancelada
---
--- Métodos de recogida (pickup_method):
---   'store'    - Recoger en tienda
---   'delivery' - Entrega a domicilio
 
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
@@ -182,42 +127,21 @@ CREATE TABLE orders (
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_status ON orders(status);
 
--- ==============================
--- ORDER DELIVERY DETAIL
--- ==============================
--- Detalle de entrega para pedidos con pickup_method = 'delivery'
--- Puede ser consumido/actualizado por cualquier empresa de delivery
---
--- Estados de entrega (status):
---   'PENDING_ASSIGNMENT' - Pendiente de asignación a repartidor
---   'ASSIGNED'           - Asignado a repartidor, esperando aceptación
---   'ACCEPTED'           - Repartidor aceptó el pedido
---   'PICKED_UP'          - Repartidor recogió el pedido del local
---   'OUT_FOR_DELIVERY'   - Repartidor en camino (chat habilitado)
---   'ARRIVED'            - Repartidor llegó al destino (chat habilitado)
---   'DELIVERED'          - Pedido entregado (chat deshabilitado)
---   'CANCELLED'          - Entrega cancelada
 
 CREATE TABLE order_delivery_details (
     id SERIAL PRIMARY KEY,
     order_id INT UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
     delivery_driver_id INT REFERENCES delivery_drivers(id) ON DELETE SET NULL,
-    
-    -- Destino de entrega
-    destination_address TEXT NOT NULL,       -- Dirección en texto
-    destination_lat DECIMAL(10,8),           -- Latitud del destino
-    destination_lng DECIMAL(11,8),           -- Longitud del destino
-    destination_reference TEXT,              -- Referencias adicionales (edificio, piso, etc.)
-    
-    -- Comentarios
-    customer_notes TEXT,                     -- Notas del cliente para el repartidor
-    driver_notes TEXT,                       -- Notas del repartidor (problemas, observaciones)
-    
-    -- Estado de la entrega
+    destination_address TEXT NOT NULL,
+    destination_lat DECIMAL(10,8),
+    destination_lng DECIMAL(11,8),
+    destination_reference TEXT,
+    customer_name VARCHAR(100),
+    customer_phone VARCHAR(20),
+    customer_notes TEXT,
+    driver_notes TEXT,
     status VARCHAR(30) DEFAULT 'PENDING_ASSIGNMENT'
         CHECK (status IN ('PENDING_ASSIGNMENT', 'ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'ARRIVED', 'DELIVERED', 'CANCELLED')),
-    
-    -- Timestamps de seguimiento
     assigned_at TIMESTAMP,
     accepted_at TIMESTAMP,
     picked_up_at TIMESTAMP,
@@ -225,10 +149,7 @@ CREATE TABLE order_delivery_details (
     arrived_at TIMESTAMP,
     delivered_at TIMESTAMP,
     cancelled_at TIMESTAMP,
-    
-    -- Motivo de cancelación si aplica
     cancellation_reason TEXT,
-    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP
 );
@@ -236,10 +157,6 @@ CREATE TABLE order_delivery_details (
 CREATE INDEX idx_order_delivery_order ON order_delivery_details(order_id);
 CREATE INDEX idx_order_delivery_driver ON order_delivery_details(delivery_driver_id);
 CREATE INDEX idx_order_delivery_status ON order_delivery_details(status);
-
--- ==============================
--- ORDER DETAILS
--- ==============================
 
 CREATE TABLE order_details (
     id SERIAL PRIMARY KEY,
@@ -251,10 +168,6 @@ CREATE TABLE order_details (
 
 CREATE INDEX idx_order_details_order ON order_details(order_id);
 
--- ==============================
--- PAYMENTS
--- ==============================
-
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
     order_id INT REFERENCES orders(id) ON DELETE CASCADE,
@@ -265,14 +178,10 @@ CREATE TABLE payments (
 
 CREATE INDEX idx_payments_order ON payments(order_id);
 
--- ==============================
--- CHAT POR PEDIDO
--- ==============================
-
 CREATE TABLE chat_messages (
     id SERIAL PRIMARY KEY,
     order_id INT REFERENCES orders(id) ON DELETE CASCADE,
-    sender_type VARCHAR(20) NOT NULL, 
+    sender_type VARCHAR(20) NOT NULL,
     sender_id INT NOT NULL,
     message TEXT NOT NULL,
     message_type VARCHAR(20) DEFAULT 'TEXT',
@@ -281,11 +190,6 @@ CREATE TABLE chat_messages (
 );
 
 CREATE INDEX idx_chat_order ON chat_messages(order_id);
-
--- ==============================
--- DELIVERY LOCATION HISTORY
--- ==============================
--- Historial de ubicaciones del repartidor durante la entrega
 
 CREATE TABLE delivery_locations (
     id SERIAL PRIMARY KEY,
@@ -299,10 +203,6 @@ CREATE TABLE delivery_locations (
 CREATE INDEX idx_delivery_locations_delivery ON delivery_locations(order_delivery_id);
 CREATE INDEX idx_delivery_locations_driver ON delivery_locations(delivery_driver_id);
 
--- ==============================
--- NOTIFICATIONS
--- ==============================
-
 CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -315,10 +215,6 @@ CREATE TABLE notifications (
 );
 
 CREATE INDEX idx_notifications_user ON notifications(user_id);
-
--- ==============================
--- DELIVERY DRIVER NOTIFICATIONS
--- ==============================
 
 CREATE TABLE delivery_driver_notifications (
     id SERIAL PRIMARY KEY,
