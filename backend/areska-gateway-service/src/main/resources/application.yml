@@ -9,7 +9,7 @@ spring:
   application:
     name: areska-gateway-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
 # Firebase - Ruta al archivo de credenciales
 firebase:

@@ -86,7 +86,12 @@ services:
       SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/app/config-repo/
     volumes:
       - ./config-repo:/app/config-repo
-
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8888/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     networks:
       - areska-network
 
@@ -102,7 +107,14 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
     networks:
       - areska-network
 
@@ -132,9 +144,12 @@ services:
       SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     networks:
       - areska-network
 
@@ -160,9 +175,12 @@ services:
       SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     networks:
       - areska-network
 
@@ -193,10 +211,14 @@ services:
       SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
-      - rabbitmq
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - areska-network
   
@@ -222,9 +244,12 @@ services:
       SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     networks:
       - areska-network
 
@@ -250,10 +275,14 @@ services:
       SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS : 5
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: 3000
     depends_on:
-      - config-server
-      - eureka-server
-      - postgres
-      - rabbitmq
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - areska-network
 
@@ -277,11 +306,16 @@ services:
     volumes:
       - ./areska-gateway-service/firebase-service-account.json:/app/firebase-service-account.json
     depends_on:
-      - config-server
-      - eureka-server
-      - user-service
-      - product-service
-      - order-service
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
     networks:
       - areska-network
 
@@ -329,4 +363,3 @@ networks:
 
 volumes:
   postgres_data:
-  
