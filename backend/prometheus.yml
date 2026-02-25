@@ -8,40 +8,40 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['user-service:8081']
-    labels:
-      application: 'areska-user-service'
+        labels:
+          application: 'areska-user-service'
 
   - job_name: 'areska-product-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['product-service:8082']
-    labels:
-      application: 'areska-product-service'
+        labels:
+          application: 'areska-product-service'
 
   - job_name: 'areska-order-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['order-service:8084']
-    labels:
-      application: 'areska-order-service'
+        labels:
+          application: 'areska-order-service'
 
   - job_name: 'areska-payment-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['payment-service:8083']
-    labels:
-      application: 'areska-payment-service'
+        labels:
+          application: 'areska-payment-service'
 
   - job_name: 'areska-delivery-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['delivery-service:8085']
-    labels:
-      application: 'areska-delivery-service'
+        labels:
+          application: 'areska-delivery-service'
 
   - job_name: 'areska-gateway-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['gateway-service:8090']
-    labels:
-      application: 'areska-gateway-service'
+        labels:
+          application: 'areska-gateway-service'

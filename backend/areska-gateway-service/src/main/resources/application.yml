@@ -11,9 +11,10 @@ spring:
   config:
     import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
 
-# Firebase - Variables de entorno
+# Firebase - Ruta al archivo de credenciales
 firebase:
-  credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
+  config:
+    path: ${FIREBASE_CONFIG_PATH:firebase-service-account.json}
 
 # Eureka - Para desarrollo local
 eureka:
