@@ -290,12 +290,14 @@ INSERT INTO users (first_name, last_name, email, phone, address, firebase_uid, a
 ('Carlos', 'Molina', 'carlos.molina@mail.com', '555-1003', 'Jirón Pixel 678, Ciudad C', 'qbO21IX9ywhQhHdWxbfn4KflHf73', 'password', TRUE, NULL),
 ('Daniela', 'Flores', 'daniela.flores@mail.com', '555-1004', 'Pasaje E-Sports 90, Ciudad D', 'aDsGr1wuKGOIqS3HplCcKl5DRFd2', 'password', TRUE, NULL),
 ('Emilio', 'Gutiérrez', 'emilio.gutierrez@mail.com', '555-1005', 'Av. Latencia 101, Ciudad A', 'eYBD6sICicXZPyv2GMlHzYv1XRx1', 'password', TRUE, NULL),
-('Jason', 'Vila', 'jasonvila2007@gmail.com', '555-1006', 'Calle Backend 321, Ciudad E', 'sYKxbgGQchMDez7mOPdkskp0WPl1', 'password', TRUE, NULL),
+('Jason', 'Vila', 'jasonvila2007@gmail.com', '555-1006', 'Calle Backend 321, Ciudad E', 'VgdlpqoBlQdyisJukUipS5g3Us33', 'password', TRUE, NULL),
 ('Jason', 'Vila', 'jasonvila2007s@gmail.com', '555-1007', 'Av. Microservicios 654, Ciudad F', 'x5tPw1mOhWNIfLQnyVoxND2QZms1', 'password', TRUE, NULL),
 ('Andy', 'GP06002423', 'andygp06002423@gmail.com', '555-1008', 'Jirón API 777, Ciudad G', 'U2Nq2MDhBmOeGQgfkbQArRUSKm02', 'password', TRUE, NULL),
 ('Andy', 'GP0600209', 'andygp0600209@gmail.com', '555-1009', 'Pasaje Gateway 888, Ciudad H', 'fziJoIm8IbWjKdtADVaPUgFrLUs2', 'password', TRUE, NULL),
 ('Andy', 'GP06002', 'andygp06002@gmail.com', '555-1010', 'Av. Node 999, Ciudad I', 'ya9aV8mYYudRHBDLCq66jGDrFSF3', 'password', TRUE, NULL),
 ('Juan Jose', 'Blas', 'juanjoseblas345@gmail.com', '555-1011', 'Calle React 222, Ciudad J', 'mwup6yI9VTSuP1v6hBV3UXRPYO53', 'password', TRUE, NULL);
+
+UPDATE users SET role = 'ADMIN' WHERE email = 'jasonvila2007@gmail.com';
 
 INSERT INTO orders (user_id, order_date, status, total, pickup_method) VALUES
 (1, '2024-10-01 10:00:00', 'completed', 239.98, 'delivery'),
