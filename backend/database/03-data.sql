@@ -321,4 +321,134 @@ INSERT INTO payments (order_id, method, amount, payment_date) VALUES
 (4, 'Debit Card', 89.99, '2024-10-04 16:05:00'),
 (5, 'Credit Card', 299.99, '2024-10-05 09:20:00');
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DELIVERY DRIVERS
+-- NOTA: Reemplaza el firebase_uid del driver 1 con el tuyo real para ver tus stats
+-- ─────────────────────────────────────────────────────────────────────────────
+INSERT INTO delivery_drivers (full_name, phone, email, firebase_uid, auth_provider, email_verified, vehicle_type, license_number, company_name, is_available, is_active)
+VALUES
+  ('Carlos Repartidor', '555-2001', 'carlos.delivery@areska.com', 'DRIVER_UID_001_REPLACE_ME', 'password', TRUE, 'Moto',      'LIC-MOTO-001', 'Areska Express', TRUE,  TRUE),
+  ('María Repartidora', '555-2002', 'maria.delivery@areska.com',  'DRIVER_UID_002_REPLACE_ME', 'password', TRUE, 'Bicicleta', 'LIC-BICI-002', 'Areska Express', TRUE,  TRUE);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ÓRDENES ADICIONALES CON PICKUP_METHOD = 'delivery'
+-- ─────────────────────────────────────────────────────────────────────────────
+INSERT INTO orders (user_id, order_date, status, total, pickup_method) VALUES
+(1, '2025-09-15 08:30:00', 'completed', 149.99, 'delivery'),   -- order 6
+(2, '2025-10-20 10:00:00', 'completed', 89.99,  'delivery'),   -- order 7
+(3, '2025-11-05 14:15:00', 'completed', 329.99, 'delivery'),   -- order 8
+(4, '2025-11-18 16:45:00', 'completed', 69.99,  'delivery'),   -- order 9
+(5, '2025-12-03 09:00:00', 'completed', 119.99, 'delivery'),   -- order 10
+(1, '2025-12-20 11:30:00', 'completed', 179.99, 'delivery'),   -- order 11
+(2, '2026-01-08 08:00:00', 'completed', 299.99, 'delivery'),   -- order 12
+(3, '2026-01-22 15:30:00', 'cancelled', 149.99, 'delivery'),   -- order 13 (cancelado)
+(4, '2026-02-21 09:10:00', 'completed', 89.99,  'delivery'),   -- order 14 (esta semana)
+(5, '2026-02-23 11:45:00', 'completed', 49.99,  'delivery'),   -- order 15 (esta semana)
+(1, '2026-02-25 14:00:00', 'completed', 119.99, 'delivery'),   -- order 16 (esta semana)
+(2, '2026-02-26 10:30:00', 'cancelled', 69.99,  'delivery'),   -- order 17 (esta semana - cancelado)
+(3, '2026-02-27 09:00:00', 'pending',   249.99, 'delivery');   -- order 18 (pendiente hoy)
+
+INSERT INTO payments (order_id, method, amount, payment_date) VALUES
+(6,  'Credit Card', 149.99, '2025-09-15 08:35:00'),
+(7,  'PayPal',       89.99, '2025-10-20 10:05:00'),
+(8,  'Credit Card', 329.99, '2025-11-05 14:20:00'),
+(9,  'Debit Card',   69.99, '2025-11-18 16:50:00'),
+(10, 'PayPal',      119.99, '2025-12-03 09:05:00'),
+(11, 'Credit Card', 179.99, '2025-12-20 11:35:00'),
+(12, 'Debit Card',  299.99, '2026-01-08 08:05:00'),
+(14, 'PayPal',       89.99, '2026-02-21 09:15:00'),
+(15, 'Credit Card',  49.99, '2026-02-23 11:50:00'),
+(16, 'PayPal',      119.99, '2026-02-25 14:05:00'),
+(18, 'Debit Card',  249.99, '2026-02-27 09:05:00');
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ORDER DELIVERY DETAILS  (delivery_driver_id = 1 → primer driver registrado)
+-- Modifica delivery_driver_id si tu cuenta tiene un ID diferente
+-- ─────────────────────────────────────────────────────────────────────────────
+INSERT INTO order_delivery_details
+  (order_id, delivery_driver_id, destination_address, destination_lat, destination_lng,
+   destination_reference, customer_name, customer_phone, status,
+   assigned_at, accepted_at, picked_up_at, out_for_delivery_at, arrived_at, delivered_at, cancelled_at, cancellation_reason,
+   created_at, updated_at)
+VALUES
+-- Orden 1 – DELIVERED (oct 2024)
+(1,  1, 'Av. Gamer 123, Ciudad A',          -12.046374, -77.042793, 'Frente al parque',         'Alejandro Vargas', '555-1001', 'DELIVERED',
+ '2024-10-01 10:08:00', '2024-10-01 10:10:00', '2024-10-01 10:28:00', '2024-10-01 10:33:00', '2024-10-01 10:52:00', '2024-10-01 10:58:00', NULL, NULL,
+ '2024-10-01 10:05:00', '2024-10-01 10:58:00'),
+
+-- Orden 3 – CANCELLED (oct 2024)
+(3,  1, 'Jirón Pixel 678, Ciudad C',         -12.122972, -77.030556, 'Edificio azul',            'Carlos Molina',    '555-1003', 'CANCELLED',
+ '2024-10-03 14:50:00', '2024-10-03 14:52:00', NULL, NULL, NULL, NULL, '2024-10-03 15:10:00', 'Cliente no disponible',
+ '2024-10-03 14:48:00', '2024-10-03 15:10:00'),
+
+-- Orden 5 – DELIVERED (oct 2024)
+(5,  1, 'Av. Latencia 101, Ciudad A',        -12.055100, -77.038100, 'Casa verde entrada',       'Emilio Gutiérrez', '555-1005', 'DELIVERED',
+ '2024-10-05 09:22:00', '2024-10-05 09:24:00', '2024-10-05 09:40:00', '2024-10-05 09:45:00', '2024-10-05 10:05:00', '2024-10-05 10:10:00', NULL, NULL,
+ '2024-10-05 09:20:00', '2024-10-05 10:10:00'),
+
+-- Orden 6 – DELIVERED (sep 2025)
+(6,  1, 'Calle RGB 45, Ciudad B',            -12.101234, -77.021111, 'Piso 3 departamento 301',  'Belen Quiroga',    '555-1002', 'DELIVERED',
+ '2025-09-15 08:35:00', '2025-09-15 08:37:00', '2025-09-15 08:55:00', '2025-09-15 09:00:00', '2025-09-15 09:22:00', '2025-09-15 09:28:00', NULL, NULL,
+ '2025-09-15 08:32:00', '2025-09-15 09:28:00'),
+
+-- Orden 7 – DELIVERED (oct 2025)
+(7,  1, 'Pasaje E-Sports 90, Ciudad D',      -12.135678, -77.062345, 'Puerta naranja',           'Daniela Flores',   '555-1004', 'DELIVERED',
+ '2025-10-20 10:05:00', '2025-10-20 10:07:00', '2025-10-20 10:22:00', '2025-10-20 10:28:00', '2025-10-20 10:48:00', '2025-10-20 10:55:00', NULL, NULL,
+ '2025-10-20 10:03:00', '2025-10-20 10:55:00'),
+
+-- Orden 8 – DELIVERED (nov 2025)
+(8,  1, 'Jirón Pixel 678, Ciudad C',         -12.122972, -77.030556, 'Portón negro',             'Carlos Molina',    '555-1003', 'DELIVERED',
+ '2025-11-05 14:20:00', '2025-11-05 14:22:00', '2025-11-05 14:40:00', '2025-11-05 14:46:00', '2025-11-05 15:05:00', '2025-11-05 15:12:00', NULL, NULL,
+ '2025-11-05 14:18:00', '2025-11-05 15:12:00'),
+
+-- Orden 9 – DELIVERED (nov 2025)
+(9,  1, 'Pasaje Gateway 888, Ciudad H',      -12.088765, -77.055432, 'Condominio Las Flores',    'Alejandro Vargas', '555-1001', 'DELIVERED',
+ '2025-11-18 16:50:00', '2025-11-18 16:52:00', '2025-11-18 17:10:00', '2025-11-18 17:16:00', '2025-11-18 17:35:00', '2025-11-18 17:42:00', NULL, NULL,
+ '2025-11-18 16:48:00', '2025-11-18 17:42:00'),
+
+-- Orden 10 – DELIVERED (dic 2025)
+(10, 1, 'Av. Node 999, Ciudad I',            -12.065432, -77.078901, 'Cerca al grifo Repsol',    'Emilio Gutiérrez', '555-1005', 'DELIVERED',
+ '2025-12-03 09:05:00', '2025-12-03 09:07:00', '2025-12-03 09:25:00', '2025-12-03 09:31:00', '2025-12-03 09:52:00', '2025-12-03 09:58:00', NULL, NULL,
+ '2025-12-03 09:03:00', '2025-12-03 09:58:00'),
+
+-- Orden 11 – DELIVERED (dic 2025)
+(11, 1, 'Calle Backend 321, Ciudad E',       -12.149012, -77.013456, 'Segundo piso',             'Belen Quiroga',    '555-1002', 'DELIVERED',
+ '2025-12-20 11:35:00', '2025-12-20 11:37:00', '2025-12-20 11:55:00', '2025-12-20 12:01:00', '2025-12-20 12:22:00', '2025-12-20 12:28:00', NULL, NULL,
+ '2025-12-20 11:33:00', '2025-12-20 12:28:00'),
+
+-- Orden 12 – DELIVERED (ene 2026)
+(12, 1, 'Av. Microservicios 654, Ciudad F',  -12.072345, -77.094567, 'Al costado del colegio',   'Daniela Flores',   '555-1004', 'DELIVERED',
+ '2026-01-08 08:05:00', '2026-01-08 08:07:00', '2026-01-08 08:26:00', '2026-01-08 08:32:00', '2026-01-08 08:55:00', '2026-01-08 09:02:00', NULL, NULL,
+ '2026-01-08 08:03:00', '2026-01-08 09:02:00'),
+
+-- Orden 13 – CANCELLED (ene 2026)
+(13, 1, 'Jirón API 777, Ciudad G',           -12.113456, -77.048765, 'Frente a la farmacia',     'Carlos Molina',    '555-1003', 'CANCELLED',
+ '2026-01-22 15:35:00', '2026-01-22 15:37:00', '2026-01-22 15:55:00', NULL, NULL, NULL, '2026-01-22 16:10:00', 'Dirección incorrecta',
+ '2026-01-22 15:33:00', '2026-01-22 16:10:00'),
+
+-- Orden 14 – DELIVERED (feb 21, 2026 – esta semana)
+(14, 1, 'Av. Gamer 123, Ciudad A',           -12.046374, -77.042793, 'Timbre nombre Vargas',     'Alejandro Vargas', '555-1001', 'DELIVERED',
+ '2026-02-21 09:15:00', '2026-02-21 09:17:00', '2026-02-21 09:35:00', '2026-02-21 09:41:00', '2026-02-21 10:00:00', '2026-02-21 10:06:00', NULL, NULL,
+ '2026-02-21 09:13:00', '2026-02-21 10:06:00'),
+
+-- Orden 15 – DELIVERED (feb 23, 2026 – esta semana)
+(15, 1, 'Calle RGB 45, Ciudad B',            -12.101234, -77.021111, 'Departamento 204',         'Belen Quiroga',    '555-1002', 'DELIVERED',
+ '2026-02-23 11:50:00', '2026-02-23 11:52:00', '2026-02-23 12:10:00', '2026-02-23 12:15:00', '2026-02-23 12:35:00', '2026-02-23 12:41:00', NULL, NULL,
+ '2026-02-23 11:48:00', '2026-02-23 12:41:00'),
+
+-- Orden 16 – DELIVERED (feb 25, 2026 – esta semana)
+(16, 1, 'Av. Latencia 101, Ciudad A',        -12.055100, -77.038100, 'Casa blanca',              'Emilio Gutiérrez', '555-1005', 'DELIVERED',
+ '2026-02-25 14:05:00', '2026-02-25 14:07:00', '2026-02-25 14:26:00', '2026-02-25 14:32:00', '2026-02-25 14:52:00', '2026-02-25 14:58:00', NULL, NULL,
+ '2026-02-25 14:03:00', '2026-02-25 14:58:00'),
+
+-- Orden 17 – CANCELLED (feb 26, 2026 – esta semana)
+(17, 1, 'Pasaje E-Sports 90, Ciudad D',      -12.135678, -77.062345, 'Edificio rojo',            'Daniela Flores',   '555-1004', 'CANCELLED',
+ '2026-02-26 10:35:00', '2026-02-26 10:37:00', NULL, NULL, NULL, NULL, '2026-02-26 10:50:00', 'Cliente canceló el pedido',
+ '2026-02-26 10:33:00', '2026-02-26 10:50:00'),
+
+-- Orden 18 – PENDING_ASSIGNMENT (hoy feb 27, 2026 – sin driver aún)
+(18, NULL, 'Jirón Pixel 678, Ciudad C',      -12.122972, -77.030556, 'Portón madera',            'Carlos Molina',    '555-1003', 'PENDING_ASSIGNMENT',
+ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+ '2026-02-27 09:00:00', '2026-02-27 09:00:00');
+
 COMMIT;

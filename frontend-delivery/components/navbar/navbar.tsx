@@ -1,8 +1,5 @@
-import { Input, Link, Navbar, NavbarContent } from "@nextui-org/react";
+import { Input, Navbar, NavbarContent } from "@nextui-org/react";
 import React from "react";
-import { FeedbackIcon } from "../icons/navbar/feedback-icon";
-import { GithubIcon } from "../icons/navbar/github-icon";
-import { SupportIcon } from "../icons/navbar/support-icon";
 import { SearchIcon } from "../icons/searchicon";
 import { BurguerButton } from "./burguer-button";
 import { NotificationsDropdown } from "./notifications-dropdown";
@@ -18,9 +15,9 @@ export const NavbarWrapper = ({ children }: Props) => {
     <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
       <Navbar
         isBordered
-        className="w-full"
+        className="w-full bg-background/60 backdrop-blur-md border-b-[0.5px] border-default-200/50"
         classNames={{
-          wrapper: "w-full max-w-full",
+          wrapper: "w-full max-w-full px-6",
         }}
       >
         <NavbarContent className="md:hidden">
@@ -30,37 +27,23 @@ export const NavbarWrapper = ({ children }: Props) => {
           <Input
             startContent={<SearchIcon />}
             isClearable
-            className="w-full"
+            className="w-full sm:max-w-[400px]"
             classNames={{
               input: "w-full",
               mainWrapper: "w-full",
+              inputWrapper: "bg-default-100 hover:bg-default-200 group-data-[focus=true]:bg-default-100 transition-colors"
             }}
-            placeholder="Search..."
+            placeholder="Buscar..."
           />
         </NavbarContent>
         <NavbarContent
           justify="end"
           className="w-fit data-[justify=end]:flex-grow-0"
         >
-          <div className="flex items-center gap-2 max-md:hidden">
-            <FeedbackIcon />
-            <span>Feedback?</span>
-          </div>
-
           <NotificationsDropdown />
 
           <AvailabilityToggle />
 
-          <div className="max-md:hidden">
-            <SupportIcon />
-          </div>
-
-          <Link
-            href="https://github.com/Siumauricio/nextui-dashboard-template"
-            target={"_blank"}
-          >
-            <GithubIcon />
-          </Link>
           <NavbarContent>
             <UserDropdown />
           </NavbarContent>

@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: rootsql
       POSTGRES_DB: areska
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - ./database:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data
@@ -268,6 +268,10 @@ services:
       DB_NAME_DELIVERY: areska
       DB_USERNAME_DELIVERY: postgres
       DB_PASSWORD_DELIVERY: rootsql
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
       # Esto le dice a Spring que use el nombre exacto que tienes en el config-repo
       SPRING_APPLICATION_NAME: areska-delivery-service
       # Esto simula tus 'Start-Sleep': si falla, reintenta 20 veces

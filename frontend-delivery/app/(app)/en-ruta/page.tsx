@@ -15,7 +15,8 @@ const CHAT_ENABLED_STATUSES: DeliveryStatus[] = ["OUT_FOR_DELIVERY", "ARRIVED"] 
 const MAP_VISIBLE_STATUSES: DeliveryStatus[] = ["ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY", "ARRIVED"] as DeliveryStatus[];
 
 export default function EnRutaPage() {
-  const { driver } = useAuthStore();
+  // loading = true mientras Firebase Auth no ha resuelto (onAuthStateChanged pendiente)
+  const { driver, loading: authLoading } = useAuthStore();
   const [activeDelivery, setActiveDelivery] = useState<OrderDeliveryDetailResponse | null>(null);
   const [lastCompletedDelivery, setLastCompletedDelivery] = useState<{ orderId: number; status: "DELIVERED" | "CANCELLED" } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,14 +25,14 @@ export default function EnRutaPage() {
   const isMapVisible = activeDelivery && MAP_VISIBLE_STATUSES.includes(activeDelivery.status);
 
   const fetchActiveDelivery = useCallback(async () => {
+    // Esperar a que Firebase Auth resuelva el estado del usuario antes de llamar la API
     if (!driver?.id) {
-      setLoading(false);
       return;
     }
 
     try {
       const deliveries = await orderDeliveriesApi.getActiveByDriverId(driver.id);
-      // Tomar la primera entrega activa
+      // Tomar la primera entrega activa (ACCEPTED, PICKED_UP, OUT_FOR_DELIVERY, ARRIVED)
       setActiveDelivery(deliveries.length > 0 ? deliveries[0] : null);
     } catch (error) {
       console.error("Error fetching active delivery:", error);
@@ -40,12 +41,21 @@ export default function EnRutaPage() {
     }
   }, [driver?.id]);
 
+  // Solo ejecutar cuando auth haya cargado (authLoading = false)
   useEffect(() => {
+    if (authLoading) return; // Esperar a que Firebase Auth resuelva
+
+    if (!driver?.id) {
+      // Auth resolvió pero no hay driver (no autenticado)
+      setLoading(false);
+      return;
+    }
+
     fetchActiveDelivery();
-    // Refrescar cada 30 segundos
-    const interval = setInterval(fetchActiveDelivery, 30000);
+    // Refrescar cada 15 segundos
+    const interval = setInterval(fetchActiveDelivery, 15000);
     return () => clearInterval(interval);
-  }, [fetchActiveDelivery]);
+  }, [fetchActiveDelivery, authLoading, driver?.id]);
 
   const handlePickedUp = async () => {
     if (!activeDelivery) return;
@@ -115,7 +125,7 @@ export default function EnRutaPage() {
     return steps.indexOf(status) + 1;
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <Spinner size="lg" label="Buscando entrega activa..." />
