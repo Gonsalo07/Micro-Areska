@@ -8,6 +8,8 @@ import java.util.stream.StreamSupport;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.example.demo.client.ProductServiceClient;
 import com.example.demo.client.UserServiceClient;
@@ -142,30 +144,36 @@ public class OrderService {
             savedOrder.setTotal(total);
             orderRepository.save(savedOrder);
 
-            // Enviar a la cola de delivery si el método de entrega es "delivery"
+            // Enviar a la cola de delivery DESPUÉS del commit para evitar race condition
+            // (el delivery-service necesita que la orden ya exista en BD al recibirla)
             if ("delivery".equalsIgnoreCase(req.getPickupMethod()) && req.getDeliveryAddress() != null) {
-                try {
-                    String customerName = (user.firstName() != null ? user.firstName() : "") + 
-                                         (user.lastName() != null ? " " + user.lastName() : "");
-                    customerName = customerName.trim().isEmpty() ? "Cliente" : customerName.trim();
-                    
-                    DeliveryRequest deliveryRequest = new DeliveryRequest(
-                            savedOrder.getId(),
-                            req.getUserId(),
-                            customerName,
-                            user.phone(),
-                            req.getDeliveryAddress(),
-                            req.getDestinationLat(),
-                            req.getDestinationLng(),
-                            req.getCustomerNotes()
-                    );
-                    deliveryProducer.sendDeliveryRequest(deliveryRequest);
-                    log.info("Delivery request sent to queue for order ID: {} (Customer: {})", 
-                            savedOrder.getId(), customerName);
-                } catch (Exception e) {
-                    log.error("Failed to send delivery request to queue: {}", e.getMessage());
-                    // No lanzamos excepción para que la orden se cree igual
-                }
+                String customerName = (user.firstName() != null ? user.firstName() : "") + 
+                                     (user.lastName() != null ? " " + user.lastName() : "");
+                final String finalCustomerName = customerName.trim().isEmpty() ? "Cliente" : customerName.trim();
+                
+                DeliveryRequest deliveryRequest = new DeliveryRequest(
+                        savedOrder.getId(),
+                        req.getUserId(),
+                        finalCustomerName,
+                        user.phone(),
+                        req.getDeliveryAddress(),
+                        req.getDestinationLat(),
+                        req.getDestinationLng(),
+                        req.getCustomerNotes()
+                );
+
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            deliveryProducer.sendDeliveryRequest(deliveryRequest);
+                            log.info("Delivery request sent to queue AFTER COMMIT for order ID: {} (Customer: {})",
+                                    deliveryRequest.getOrderId(), finalCustomerName);
+                        } catch (Exception e) {
+                            log.error("Failed to send delivery request to queue after commit: {}", e.getMessage());
+                        }
+                    }
+                });
             }
 
             return toResponse(savedOrder, details);

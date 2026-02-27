@@ -20,6 +20,14 @@ export const UserDropdown = () => {
     router.replace("/login");
   }, [logout, router]);
 
+  const handleAction = useCallback(
+    (key: React.Key) => {
+      if (key === "settings") router.push("/accounts");
+      if (key === "logout") handleLogout();
+    },
+    [router, handleLogout]
+  );
+
   return (
     <Dropdown>
       <DropdownTrigger>
@@ -37,7 +45,7 @@ export const UserDropdown = () => {
       </DropdownTrigger>
       <DropdownMenu
         aria-label='User menu actions'
-        onAction={(actionKey) => console.log({ actionKey })}>
+        onAction={handleAction}>
         <DropdownItem
           key='profile'
           className='flex flex-col justify-start w-full items-start'>
@@ -48,8 +56,7 @@ export const UserDropdown = () => {
         <DropdownItem
           key='logout'
           color='danger'
-          className='text-danger'
-          onPress={handleLogout}>
+          className='text-danger'>
           Cerrar Sesión
         </DropdownItem>
         <DropdownItem key='switch'>

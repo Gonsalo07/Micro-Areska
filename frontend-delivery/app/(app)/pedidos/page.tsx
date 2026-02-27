@@ -5,9 +5,10 @@ import { Button, Card, CardBody, Chip, Spinner, Badge } from '@nextui-org/react'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { orderDeliveriesApi } from '@/features/delivery/api/order-deliveries'
 import type { OrderDeliveryDetailResponse } from '@/lib/types/order'
+import { toast } from 'sonner'
 
 export default function PedidosPage() {
-  const { driver } = useAuthStore()
+  const { driver, loading: authLoading } = useAuthStore()
   const [orders, setOrders] = useState<OrderDeliveryDetailResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState<number | null>(null)
@@ -38,6 +39,7 @@ export default function PedidosPage() {
   }, [driver?.id])
 
   useEffect(() => {
+    if (authLoading) return
     fetchPending()
     fetchActiveOrder()
     const interval = setInterval(() => {
@@ -45,42 +47,55 @@ export default function PedidosPage() {
       fetchActiveOrder()
     }, 15_000)
     return () => clearInterval(interval)
-  }, [fetchPending, fetchActiveOrder])
+  }, [fetchPending, fetchActiveOrder, authLoading])
 
   const handleAccept = async (deliveryId: number) => {
     if (!driver?.id) return
     if (activeOrder) return
     setAccepting(deliveryId)
-    const result = await orderDeliveriesApi.acceptOrder(deliveryId, driver.id)
-    if (result === null) {
-      await fetchPending()
-    } else {
-      window.location.href = '/en-ruta'
+    try {
+      const result = await orderDeliveriesApi.acceptOrder(deliveryId, driver.id)
+      if (result === null) {
+        toast.error('No se pudo aceptar la orden', {
+          description: 'La orden ya fue tomada por otro repartidor o no está disponible.',
+        })
+        await fetchPending()
+      } else {
+        toast.success('¡Orden aceptada!', { description: 'Redirigiendo a tu entrega...' })
+        window.location.href = '/en-ruta'
+      }
+    } catch {
+      toast.error('Error al aceptar la orden', { description: 'Intenta de nuevo.' })
+    } finally {
+      setAccepting(null)
     }
-    setAccepting(null)
   }
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-default-50 to-background px-4 py-6">
-      <div className="max-w-2xl mx-auto space-y-5">
+    <div className="min-h-full bg-gray-50 dark:bg-zinc-950 px-4 py-8">
+      <div className="max-w-2xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-zinc-800">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Órdenes disponibles</h1>
-            <p className="text-default-400 text-sm mt-0.5">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              Órdenes
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-1">
               {orders.length > 0
-                ? `${orders.length} orden${orders.length > 1 ? 'es' : ''} esperando repartidor`
-                : 'Sin órdenes por ahora'}
+                ? `${orders.length} ${orders.length === 1 ? 'orden disponible' : 'órdenes disponibles'}`
+                : 'No hay órdenes pendientes'}
             </p>
           </div>
           <Button
             size="sm"
-            variant="bordered"
+            color="primary"
+            variant="flat"
             radius="full"
             onPress={() => { fetchPending(); fetchActiveOrder() }}
             isDisabled={loading}
-            startContent={<span className="text-sm">🔄</span>}
+            className="font-medium px-4 bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
+            startContent={<span className={`text-lg transition-transform ${loading ? 'animate-spin' : ''}`}>↻</span>}
           >
             Actualizar
           </Button>
@@ -88,143 +103,155 @@ export default function PedidosPage() {
 
         {/* Banner pedido en curso */}
         {activeOrder && (
-          <div className="flex items-center gap-3 bg-warning-50 dark:bg-warning/10 border border-warning-200 dark:border-warning/30 rounded-2xl px-4 py-3">
-            <div className="w-9 h-9 rounded-full bg-warning/20 flex items-center justify-center shrink-0 text-lg">
-              ⚠️
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-warning-700 dark:text-warning text-sm">
-                Ya tienes un pedido en curso
-              </p>
-              <p className="text-xs text-warning-600/70 dark:text-warning/60 truncate">
-                Orden #{activeOrder.orderId} · {activeOrder.status}
-              </p>
-            </div>
-            <Chip size="sm" color="warning" variant="flat" radius="full">
-              En ruta
-            </Chip>
-          </div>
+          <Card className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-900/10 shadow-sm transition-all hover:shadow-md">
+            <CardBody className="flex flex-row items-center gap-4 py-4 px-5">
+              <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                <span className="text-xl">🛵</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">
+                  Pedido en curso
+                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-mono bg-white dark:bg-black/20 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                    #{activeOrder.orderId}
+                  </span>
+                  <span>•</span>
+                  <span className="truncate max-w-[150px]">{activeOrder.status}</span>
+                </div>
+              </div>
+              <Button 
+                size="md" 
+                color="warning" 
+                variant="shadow" 
+                radius="full"
+                as="a"
+                href="/en-ruta"
+                className="font-extrabold text-white shadow-lg shadow-amber-500/40 px-6"
+              >
+                VER MAPA
+              </Button>
+            </CardBody>
+          </Card>
         )}
 
         {/* Contenido */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <Spinner size="lg" color="primary" />
-            <p className="text-default-400 text-sm">Buscando órdenes...</p>
+          <div className="flex flex-col items-center justify-center py-32 gap-4 text-center animate-in fade-in duration-700">
+            <Spinner size="lg" color="primary" classNames={{ circle1: "border-b-primary", circle2: "border-b-primary" }} />
+            <p className="text-gray-400 text-sm font-medium animate-pulse">Buscando órdenes cercanas...</p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-20 h-20 rounded-full bg-default-100 flex items-center justify-center text-4xl">
-              🛵
+          <div className="flex flex-col items-center justify-center py-20 gap-6 text-center animate-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 rounded-3xl bg-gray-100 dark:bg-zinc-900 flex items-center justify-center shadow-inner">
+              <span className="text-5xl opacity-50 grayscale hover:grayscale-0 transition-all duration-500 cursor-default">😴</span>
             </div>
-            <div className="text-center">
-              <p className="font-semibold text-default-600">Sin órdenes pendientes</p>
-              <p className="text-sm text-default-400 mt-1">
-                Las nuevas órdenes aparecerán aquí automáticamente
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Todo tranquilo por ahora</h3>
+              <p className="text-sm text-gray-500 max-w-[200px] mx-auto mt-2 leading-relaxed">
+                Relájate un momento. Las nuevas órdenes aparecerán aquí automáticamente.
               </p>
             </div>
+            <Button 
+              variant="light" 
+              color="primary" 
+              onPress={() => { fetchPending(); fetchActiveOrder() }}
+              className="font-medium"
+            >
+              Comprobar de nuevo
+            </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-5 animate-in slide-in-from-bottom-4 duration-500">
             {orders.map((order) => (
               <Card
                 key={order.id}
                 shadow="sm"
                 radius="lg"
-                className="border border-default-100 bg-content1 hover:shadow-md transition-shadow"
+                className="border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group overflow-visible"
               >
-                <CardBody className="p-0 overflow-hidden">
-                  {/* Franja superior de color */}
-                  <div className="h-1 w-full bg-gradient-to-r from-primary to-primary-400 rounded-t-xl" />
-
-                  <div className="p-4 space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg shrink-0">
-                          📦
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm">Orden #{order.orderId}</p>
-                          <Chip size="sm" color="warning" variant="dot" radius="sm" className="h-5 text-[11px]">
-                            Pendiente
+                <CardBody className="p-0">
+                  {/* Status Bar */}
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center bg-gray-50/50 dark:bg-zinc-900/50 rounded-t-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-sm">
+                        <span className="text-xl">📦</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-gray-900 dark:text-white">Orden #{order.orderId}</p>
+                          <Chip 
+                            size="sm" 
+                            color="success" 
+                            variant="flat" 
+                            classNames={{ base: "h-5 px-1.5 bg-green-100 dark:bg-green-900/30", content: "font-semibold text-[10px] text-green-700 dark:text-green-400" }}
+                          >
+                            DISPONIBLE
                           </Chip>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-default-400">
-                          {order.createdAt
-                            ? new Date(order.createdAt).toLocaleTimeString('es-ES', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
-                            : ''}
-                        </p>
-                        <p className="text-[10px] text-default-300">
-                          {order.createdAt
-                            ? new Date(order.createdAt).toLocaleDateString('es-ES', {
-                                day: '2-digit',
-                                month: 'short',
-                              })
-                            : ''}
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">
+                          {order.createdAt ? formatTime(order.createdAt) : 'Reciente'}
                         </p>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Divider */}
-                    <div className="border-t border-default-100" />
-
-                    {/* Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-default-100 flex items-center justify-center text-sm shrink-0">
-                          👤
+                  <div className="p-5 space-y-6">
+                    {/* Details */}
+                    <div className="space-y-4">
+                      {/* Customer */}
+                      <div className="flex gap-4 group-hover:bg-gray-50 dark:group-hover:bg-zinc-800/50 p-2 -mx-2 rounded-xl transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5 text-gray-500">
+                          <span className="text-sm">👤</span>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate">{order.customerName}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cliente</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{order.customerName}</p>
                           {order.customerPhone && (
-                            <p className="text-xs text-default-400">{order.customerPhone}</p>
+                            <p className="text-xs text-primary font-medium mt-0.5">{order.customerPhone}</p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-danger/10 flex items-center justify-center text-sm shrink-0 mt-0.5">
-                          📍
+
+                      {/* Address */}
+                      <div className="flex gap-4 p-2 -mx-2">
+                        <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0 mt-0.5 text-rose-600">
+                          <span className="text-sm">📍</span>
                         </div>
-                        <p className="text-sm text-default-600 leading-snug">{order.destinationAddress}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Destino</p>
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-200 leading-relaxed">
+                            {order.destinationAddress}
+                          </p>
+                          {order.customerNotes && (
+                            <div className="mt-3 text-xs bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-500 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30 flex gap-2">
+                              <span className="shrink-0 text-amber-600">📝</span>
+                              <span className="italic">{order.customerNotes}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {order.customerNotes && (
-                        <div className="flex items-start gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-default-100 flex items-center justify-center text-sm shrink-0 mt-0.5">
-                            📝
-                          </div>
-                          <p className="text-xs text-default-400 italic leading-snug">{order.customerNotes}</p>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Botón */}
-                    {activeOrder ? (
-                      <div className="flex items-center justify-center gap-2 w-full rounded-xl bg-warning-50 dark:bg-warning/10 border border-warning-200 dark:border-warning/20 px-4 py-2.5">
-                        <span className="text-sm">🚫</span>
-                        <p className="text-sm font-medium text-warning-700 dark:text-warning">
-                          Tienes un pedido en curso, no puedes aceptarlo
-                        </p>
-                      </div>
-                    ) : (
-                      <Button
-                        color="primary"
-                        fullWidth
-                        radius="lg"
-                        onPress={() => handleAccept(order.id)}
-                        isLoading={accepting === order.id}
-                        isDisabled={accepting !== null}
-                        className="font-semibold"
-                        startContent={accepting !== order.id ? <span>✅</span> : undefined}
-                      >
-                        {accepting === order.id ? 'Aceptando...' : 'Aceptar esta orden'}
-                      </Button>
-                    )}
+                    {/* Action */}
+                    <div className="pt-2">
+                      {activeOrder ? (
+                        <div className="w-full bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 py-3 rounded-xl text-center text-sm font-medium flex items-center justify-center gap-2 opacity-75 cursor-not-allowed border border-dashed border-gray-300 dark:border-zinc-700">
+                          <span>⛔</span> Termina tu pedido actual primero
+                        </div>
+                      ) : (
+                        <Button
+                          size="lg"
+                          color="primary"
+                          className="w-full font-bold shadow-lg shadow-primary/25 data-[hover=true]:scale-[1.02] active:scale-95 transition-all text-sm"
+                          onPress={() => handleAccept(order.id)}
+                          isLoading={accepting === order.id}
+                          isDisabled={accepting !== null}
+                        >
+                          {accepting === order.id ? 'Confirmando...' : 'Aceptar Entrega'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardBody>
               </Card>
@@ -234,4 +261,14 @@ export default function PedidosPage() {
       </div>
     </div>
   )
+}
+
+function formatTime(dateString: string) {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: 'short'
+  }).format(date)
 }

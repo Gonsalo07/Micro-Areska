@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { fontSans } from "@/config/fonts";
 import { AuthInitializer } from "@/features/auth/components/auth-initializer";
+import { Toaster } from "sonner";
 import clsx from "clsx";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className={clsx("font-sans antialiased", fontSans.className)}>
         <Providers>
           <AuthInitializer>{children}</AuthInitializer>
+          <Toaster position="top-center" richColors />
         </Providers>
       </body>
     </html>

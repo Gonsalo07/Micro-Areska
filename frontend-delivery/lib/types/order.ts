@@ -13,12 +13,14 @@ export interface OrderResponse {
 export interface OrderDetailResponse {
   id: number
   orderId: number
-  productId: number
-  productName: string
-  productImage: string | null
+  product: {
+    id: number
+    name: string
+    image?: string | null
+  }
   quantity: number
-  price: number
-  subtotal: number
+  unitPrice: number
+  priceTotal: number
 }
 
 // Order Delivery Detail - datos de entrega desde delivery-service
@@ -45,6 +47,7 @@ export interface OrderDeliveryDetailResponse {
   arrivedAt: string | null
   deliveredAt: string | null
   cancelledAt: string | null
+  cancellationReason?: string | null
   createdAt: string
   updatedAt: string
 }
