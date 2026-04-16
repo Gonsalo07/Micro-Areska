@@ -1,5 +1,7 @@
 # Areska - Guía de Inicio
 
+<img width="1920" height="1280" alt="readme" src="https://github.com/user-attachments/assets/24aead36-1524-42c6-bb46-6826dc62444b" />
+
 ## Requisitos previos
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
 - [Node.js + pnpm](https://pnpm.io/installation)
