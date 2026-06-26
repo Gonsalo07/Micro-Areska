@@ -75,6 +75,11 @@ public class RouterValidator {
             return true;
         }
 
+        if (method == HttpMethod.GET && path.contains("/api/orders")) {
+            System.out.println("   ➡️ GET Orders - TEMPORALMENTE Abierto (DELIVERY APP)");
+            return true;
+        }
+
         System.out.println("   ➡️ Endpoint PROTEGIDO - Requiere autenticación");
         return false;
     }

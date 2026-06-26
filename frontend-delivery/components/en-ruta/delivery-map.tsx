@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chip, Button, Switch } from "@nextui-org/react";
-import type { OrderDeliveryDetailResponse, DeliveryStatus } from "@/lib/types/order";
+import { Button, Switch } from "@nextui-org/react";
+import type { OrderDeliveryDetailResponse } from "@/lib/types/order";
 import { useDeliveryLocationSender } from "@/hooks/use-delivery-location-sender";
 
 declare global {
@@ -14,17 +14,6 @@ declare global {
 interface DeliveryMapProps {
   delivery?: OrderDeliveryDetailResponse;
 }
-
-const STATUS_CONFIG: Record<DeliveryStatus, { label: string; color: "warning" | "primary" | "success" | "default" }> = {
-  PENDING_ASSIGNMENT: { label: "Pendiente", color: "default" },
-  ASSIGNED: { label: "Asignado", color: "default" },
-  ACCEPTED: { label: "Aceptado", color: "primary" },
-  PICKED_UP: { label: "Recogido", color: "primary" },
-  OUT_FOR_DELIVERY: { label: "En camino", color: "warning" },
-  ARRIVED: { label: "En destino", color: "success" },
-  DELIVERED: { label: "Entregado", color: "success" },
-  CANCELLED: { label: "Cancelado", color: "default" },
-};
 
 export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -468,34 +457,25 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
     );
   }
 
-  const statusConfig = STATUS_CONFIG[delivery.status] || { label: delivery.status, color: "default" as const };
-
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="bg-primary/10 p-3 rounded-t-lg border-b border-primary/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-primary">Orden #{delivery.orderId}</h3>
+    <div className="flex-1 flex flex-col overflow-hidden rounded-lg border border-divider bg-content1">
+      <div className="border-b border-divider p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-foreground">Orden #{delivery.orderId}</h3>
             <p className="text-sm text-default-500 truncate max-w-[250px]">
               {delivery.destinationAddress || "Sin dirección especificada"}
             </p>
           </div>
-          <div className="text-right">
-            <Chip size="sm" color={statusConfig.color} variant="flat">
-              {statusConfig.label}
-            </Chip>
-          </div>
+          {isConnected && (
+            <div className="flex shrink-0 items-center gap-2 text-xs">
+              <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+              <span className="font-medium text-success whitespace-nowrap">
+                Tracking en tiempo real activo
+              </span>
+            </div>
+          )}
         </div>
-        
-        {/* Indicador de WebSocket en tiempo real */}
-        {isConnected && (
-          <div className="flex items-center gap-2 mt-2 text-xs">
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-            <span className="text-success-600 font-medium">
-              Tracking en tiempo real activo
-            </span>
-          </div>
-        )}
         
         {/* Información de ruta */}
         {(distance || duration) && (
@@ -503,21 +483,21 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             {distance && (
               <div className="flex items-center gap-1">
                 <span className="text-default-400">📍</span>
-                <span className="font-medium text-primary">{distance}</span>
+                <span className="font-medium text-foreground">{distance}</span>
               </div>
             )}
             {duration && (
               <div className="flex items-center gap-1">
                 <span className="text-default-400">⏱️</span>
-                <span className="font-medium text-primary">{duration}</span>
+                <span className="font-medium text-foreground">{duration}</span>
               </div>
             )}
           </div>
         )}
         
         {delivery.customerNotes && (
-          <div className="mt-2 text-sm bg-warning/10 p-2 rounded">
-            <span className="font-medium">📝 Nota del cliente:</span> {delivery.customerNotes}
+          <div className="mt-2 rounded-lg bg-default-100 p-2 text-sm text-foreground">
+            <span className="font-medium">Nota del cliente:</span> {delivery.customerNotes}
           </div>
         )}
 
@@ -525,7 +505,7 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
         <div className="mt-2 flex items-center gap-2 flex-wrap">
           <Switch
             size="sm"
-            color="warning"
+            color="primary"
             isSelected={testMode}
             onValueChange={setTestMode}
           >
@@ -536,8 +516,8 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             <Button
               size="sm"
               variant="flat"
-              color="warning"
-              className="text-xs font-mono flex-1"
+              color="primary"
+              className="h-8 min-h-8 flex-1 px-3 text-xs font-mono"
               startContent="🚗"
               onPress={() => triggerSimMoveRef.current?.()}
             >
@@ -545,15 +525,9 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             </Button>
           )}
 
-          <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-            isConnected ? 'bg-success/10 text-success-600' : 'bg-default-100 text-default-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-default-300'}`} />
-            {isConnected ? 'WS ON' : 'WS OFF'}
-          </div>
         </div>
       </div>
-      <div ref={mapRef} className="flex-1 min-h-0 rounded-b-lg" />
+      <div ref={mapRef} className="min-h-0 flex-1 bg-default-100" />
     </div>
   );
 };

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.dto.OrderDeliveryDetailRequest;
 import com.example.demo.dto.OrderDeliveryDetailResponse;
 import com.example.demo.dto.OrderDeliveryDetailUpdateRequest;
+import com.example.demo.dto.DriverHistoryPageResponse;
 import com.example.demo.service.OrderDeliveryDetailService;
 import com.example.demo.shared.Api.ApiSuccess;
 
@@ -66,6 +67,20 @@ public class OrderDeliveryDetailController {
         ApiSuccess<List<OrderDeliveryDetailResponse>> response = new ApiSuccess<>(
                 details.isEmpty() ? "No deliveries found for driver" : "Deliveries listed successfully",
                 details);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/driver/{driverId}/history")
+    @Operation(summary = "Get paginated delivery history for a driver (delivered/cancelled)")
+    public ResponseEntity<ApiSuccess<DriverHistoryPageResponse>> getDriverHistory(
+            @Min(1) @PathVariable Integer driverId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) {
+        DriverHistoryPageResponse history = service.getDriverHistory(driverId, search, page, size);
+        ApiSuccess<DriverHistoryPageResponse> response = new ApiSuccess<>(
+                history.content().isEmpty() ? "No delivery history found" : "Delivery history listed successfully",
+                history);
         return ResponseEntity.ok(response);
     }
 

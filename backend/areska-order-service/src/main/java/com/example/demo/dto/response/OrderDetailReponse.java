@@ -15,6 +15,7 @@ public record OrderDetailReponse(
 
         @JsonIgnore Integer productId,
         @JsonIgnore String  productName,
+        @JsonIgnore String  productImage,
 
         Integer quantity,
         BigDecimal unitPrice,
@@ -26,6 +27,9 @@ public record OrderDetailReponse(
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", productId());
         map.put("name", productName());
+        if (productImage() != null && !productImage().isBlank()) {
+            map.put("image", productImage());
+        }
         return map;
     }
 }

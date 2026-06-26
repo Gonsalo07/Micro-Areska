@@ -1,14 +1,13 @@
 import React from "react";
 import { Sidebar } from "./sidebar.styles";
-import { Avatar, Tooltip } from "@nextui-org/react";
 import { CompaniesDropdown } from "./companies-dropdown";
 import { HomeIcon } from "../icons/sidebar/home-icon";
 import { PaymentsIcon } from "../icons/sidebar/payments-icon";
 import { ReportsIcon } from "../icons/sidebar/reports-icon";
-import { SettingsIcon } from "../icons/sidebar/settings-icon";
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
 import { FilterIcon } from "../icons/sidebar/filter-icon";
+import { SidebarUser } from "./sidebar-user";
 import { useSidebarContext } from "../layout/layout-context";
 import { usePathname } from "next/navigation";
 
@@ -29,64 +28,35 @@ export const SidebarWrapper = () => {
         <div className={Sidebar.Header()}>
           <CompaniesDropdown />
         </div>
-        <div className="flex flex-col justify-between h-full">
-          <div className={Sidebar.Body()}>
+        <div className={Sidebar.Body()}>
+          <SidebarItem
+            title="Home"
+            icon={<HomeIcon />}
+            isActive={pathname === "/"}
+            href="/"
+          />
+          <SidebarMenu title="Menú Principal">
             <SidebarItem
-              title="Home"
-              icon={<HomeIcon />}
-              isActive={pathname === "/"}
-              href="/"
+              isActive={pathname === "/pedidos"}
+              title="Pedidos"
+              icon={<PaymentsIcon />}
+              href="/pedidos"
             />
-            <SidebarMenu title="Menú Principal">
-              <SidebarItem
-                isActive={pathname === "/pedidos"}
-                title="Pedidos"
-                icon={<PaymentsIcon />}
-                href="/pedidos"
-              />
-              <SidebarItem
-                isActive={pathname === "/en-ruta"}
-                title="En Ruta"
-                icon={<ReportsIcon />}
-                href="/en-ruta"
-              />
-              <SidebarItem
-                isActive={pathname === "/historial"}
-                title="Historial"
-                icon={<FilterIcon />}
-                href="/historial"
-              />
-            </SidebarMenu>
-
-            <SidebarMenu title="General">
-              <SidebarItem
-                isActive={pathname === "/accounts"}
-                title="Configuración"
-                icon={<SettingsIcon />}
-                href="/accounts"
-              />
-            </SidebarMenu>
-          </div>
-          <div className={Sidebar.Footer()}>
-            <Tooltip content={"Configuración"} color="primary">
-              <div
-                className="max-w-fit cursor-pointer text-default-400 hover:text-primary transition-colors"
-                onClick={() => (window.location.href = "/accounts")}
-              >
-                <SettingsIcon />
-              </div>
-            </Tooltip>
-            <Tooltip content={"Perfil"} color="primary">
-              <Avatar
-                src="/casco.jpeg"
-                size="sm"
-                isBordered
-                color="primary"
-                className="cursor-pointer transition-transform hover:scale-110"
-              />
-            </Tooltip>
-          </div>
+            <SidebarItem
+              isActive={pathname === "/en-ruta"}
+              title="En Ruta"
+              icon={<ReportsIcon />}
+              href="/en-ruta"
+            />
+            <SidebarItem
+              isActive={pathname === "/historial"}
+              title="Historial"
+              icon={<FilterIcon />}
+              href="/historial"
+            />
+          </SidebarMenu>
         </div>
+        <SidebarUser />
       </div>
     </aside>
   );

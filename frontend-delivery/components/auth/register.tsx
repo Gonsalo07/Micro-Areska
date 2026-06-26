@@ -6,9 +6,26 @@ import { RegisterSchema } from "@/helpers/schemas";
 import { RegisterFormType } from "@/helpers/types";
 import { Button, Input } from "@nextui-org/react";
 import { Formik } from "formik";
+import {
+  AlertCircle,
+  Lock,
+  LockKeyhole,
+  Mail,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+
+import { InputIcon } from "@/components/auth/input-icon";
+import { PrimaryButton } from "@/components/primary-button";
+
+const inputClassNames = {
+  label: "text-sm font-semibold text-gray-700 dark:text-gray-300 pb-1.5",
+  inputWrapper:
+    "h-12 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all group-data-[focus=true]:bg-white dark:group-data-[focus=true]:bg-zinc-900 group-data-[focus=true]:border-primary shadow-sm",
+  input: "text-base",
+};
 
 export const Register = () => {
   const router = useRouter();
@@ -31,100 +48,133 @@ export const Register = () => {
         router.replace("/");
       } catch (error: any) {
         console.error("Registration error:", error);
-        setErrorMessage(error?.message ?? "No se pudo registrar. Intenta nuevamente.");
+        setErrorMessage(
+          error?.message ?? "No se pudo registrar. Intenta nuevamente."
+        );
       }
     },
     [signup, router]
   );
 
   return (
-    <>
-      <div className='text-center text-[25px] font-bold mb-6'>
-        Registro - Conductor Delivery
+    <div className="flex flex-col w-full max-w-md bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/20 dark:border-zinc-800 z-10 transition-all duration-500 animate-in fade-in zoom-in-95">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
+          Únete al equipo
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+          Crea tu cuenta de repartidor Areska
+        </p>
       </div>
 
       <Formik
         initialValues={initialValues}
         validationSchema={RegisterSchema}
-        onSubmit={handleRegister}>
-        {({ values, errors, touched, handleChange, handleSubmit }) => (
-          <>
+        onSubmit={handleRegister}
+      >
+        {({
+          values,
+          errors,
+          touched,
+          handleChange,
+          handleSubmit,
+          isSubmitting,
+        }) => (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {errorMessage && (
-              <div className='mb-4 p-3 rounded bg-red-100 text-red-700 text-sm w-1/2'>
+              <div className="p-4 rounded-xl bg-danger-50 dark:bg-danger-900/20 text-danger-600 dark:text-danger-400 text-sm font-medium border border-danger-200 dark:border-danger-900/50 flex gap-2 items-center animate-in slide-in-from-top-2">
+                <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
                 {errorMessage}
               </div>
             )}
 
-            <div className='flex flex-col w-1/2 gap-4 mb-4'>
+            <div className="flex flex-col gap-5">
               <Input
-                variant='bordered'
-                label='Nombre completo'
-                labelPlacement='outside'
-                placeholder='Tu nombre completo'
+                variant="flat"
+                label="Nombre completo"
+                labelPlacement="outside"
+                placeholder="Juan Pérez"
                 value={values.name}
                 isInvalid={!!errors.name && !!touched.name}
                 errorMessage={errors.name}
                 onChange={handleChange("name")}
-                disabled={isLoading}
+                isDisabled={isLoading || isSubmitting}
+                classNames={inputClassNames}
+                startContent={<InputIcon icon={User} />}
               />
+
               <Input
-                variant='bordered'
-                label='Correo electrónico'
-                labelPlacement='outside'
-                placeholder='correo@ejemplo.com'
-                type='email'
+                variant="flat"
+                label="Correo electrónico"
+                labelPlacement="outside"
+                placeholder="ejemplo@areska.com"
+                type="email"
                 value={values.email}
                 isInvalid={!!errors.email && !!touched.email}
                 errorMessage={errors.email}
                 onChange={handleChange("email")}
-                disabled={isLoading}
+                isDisabled={isLoading || isSubmitting}
+                classNames={inputClassNames}
+                startContent={<InputIcon icon={Mail} />}
               />
+
               <Input
-                variant='bordered'
-                label='Contraseña'
-                labelPlacement='outside'
-                placeholder='Tu contraseña'
-                type='password'
+                variant="flat"
+                label="Contraseña"
+                labelPlacement="outside"
+                placeholder="••••••••"
+                type="password"
                 value={values.password}
                 isInvalid={!!errors.password && !!touched.password}
                 errorMessage={errors.password}
                 onChange={handleChange("password")}
-                disabled={isLoading}
+                isDisabled={isLoading || isSubmitting}
+                classNames={inputClassNames}
+                startContent={<InputIcon icon={Lock} />}
               />
+
               <Input
-                variant='bordered'
-                label='Confirmar contraseña'
-                labelPlacement='outside'
-                placeholder='Repite tu contraseña'
-                type='password'
+                variant="flat"
+                label="Confirmar contraseña"
+                labelPlacement="outside"
+                placeholder="••••••••"
+                type="password"
                 value={values.confirmPassword}
                 isInvalid={
                   !!errors.confirmPassword && !!touched.confirmPassword
                 }
                 errorMessage={errors.confirmPassword}
                 onChange={handleChange("confirmPassword")}
-                disabled={isLoading}
+                isDisabled={isLoading || isSubmitting}
+                classNames={inputClassNames}
+                startContent={<InputIcon icon={LockKeyhole} />}
               />
             </div>
 
-            <Button
-              onPress={() => handleSubmit()}
-              variant='flat'
-              color='primary'
-              isLoading={isLoading}
-              disabled={isLoading}>
-              {isLoading ? "Registrando..." : "Registrarse"}
-            </Button>
-          </>
+            <PrimaryButton
+              type="submit"
+              fullWidth
+              isLoading={isLoading || isSubmitting}
+              isDisabled={isLoading || isSubmitting}
+              className="mt-2"
+            >
+              {isLoading ? "Creando cuenta..." : "Crear cuenta"}
+            </PrimaryButton>
+          </form>
         )}
       </Formik>
 
-      <div className='font-light text-slate-400 mt-4 text-sm'>
-        ¿Ya tienes una cuenta?{" "}
-        <Link href='/login' className='font-bold'>
-          Inicia sesión aquí
-        </Link>
+      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800 text-center">
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+          ¿Ya tienes una cuenta?{" "}
+          <Link
+            href="/login"
+            className="font-bold text-primary hover:text-primary-600 transition-colors ml-1"
+          >
+            Inicia sesión aquí
+          </Link>
+        </p>
       </div>
-    </>
+    </div>
   );
 };

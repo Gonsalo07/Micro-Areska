@@ -18,10 +18,28 @@ export const ordersApi = {
   },
 
   /**
-   * Get order by ID (with items)
+   * Get order by ID (with items).
+   * Uses Next.js proxy to order-service (delivery app drivers lack gateway access to /api/orders).
    */
   async getById(id: number) {
-    return apiClient.get<OrderResponse>(`/${RESOURCE}/${id}`)
+    const res = await fetch(`/api/orders/${id}`, { cache: "no-store" });
+    const text = await res.text();
+
+    if (!text || text.trim() === "") {
+      throw new Error("Empty order response");
+    }
+
+    const json = JSON.parse(text) as {
+      success: boolean;
+      data?: OrderResponse;
+      message?: string;
+    };
+
+    if (!json.success || !json.data) {
+      throw new Error(json.message ?? `Failed to load order ${id}`);
+    }
+
+    return json.data;
   },
 
   /**

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Input, Avatar, Spinner } from "@nextui-org/react";
+import { Send } from "lucide-react";
 import { chatMessagesApi, type ChatMessage } from "@/features/delivery/api/chat-messages";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import type { OrderDeliveryDetailResponse } from "@/lib/types/order";
@@ -169,10 +170,10 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
         <div className="flex items-center gap-3">
           <Avatar
             src="https://i.pravatar.cc/150?u=customer123"
-            size="sm"
-            className="ring-2 ring-success ring-offset-2"
+            size="md"
+            className="h-10 w-10 shrink-0"
           />
-          <div>
+          <div className="pl-[3px]">
             <h3 className="font-semibold text-sm">{delivery?.customerName || 'Cliente'}</h3>
             <span className="text-xs text-success">En línea</span>
           </div>
@@ -223,40 +224,32 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
 
      {/* Input */}
     <div className="p-3 border-t border-default-200">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Input
             placeholder="Escribe un mensaje..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            size="sm"
+            size="md"
+            radius="lg"
             isDisabled={sending}
             classNames={{
+              base: "flex-1",
+              inputWrapper: "h-10 min-h-10 px-3",
               input: "text-sm",
             }}
           />
           <Button
             isIconOnly
             color="primary"
-            size="sm"
-            onClick={handleSendMessage}
+            size="md"
+            radius="lg"
+            className="h-10 w-10 min-h-10 min-w-10 shrink-0"
+            onPress={handleSendMessage}
             isDisabled={!newMessage.trim() || sending}
             isLoading={sending}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-4 h-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-              />
-            </svg>
+            <Send size={16} strokeWidth={2} />
           </Button>
         </div>
       </div>

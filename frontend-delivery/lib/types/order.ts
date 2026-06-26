@@ -52,6 +52,16 @@ export interface OrderDeliveryDetailResponse {
   updatedAt: string
 }
 
+export interface DriverHistoryPageResponse {
+  content: OrderDeliveryDetailResponse[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  deliveredCount: number
+  cancelledCount: number
+}
+
 export interface OrderDeliveryDetailUpdateRequest {
   status?: DeliveryStatus
   driverNotes?: string

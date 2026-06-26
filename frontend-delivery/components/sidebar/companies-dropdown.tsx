@@ -12,7 +12,7 @@ export const CompaniesDropdown = () => {
         <h3 className="text-lg font-bold text-default-900 whitespace-nowrap leading-none tracking-tight">
           ARESKA
         </h3>
-        <span className="text-[10px] font-semibold text-default-400 uppercase tracking-widest">
+        <span className="text-[10px] font-semibold text-default-500 dark:text-default-400 uppercase tracking-widest">
           Driver App
         </span>
       </div>

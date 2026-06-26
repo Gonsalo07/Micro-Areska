@@ -247,12 +247,14 @@ public class OrderService {
                     .orElse(null);
             
             String productName = product != null ? product.name() : "Unknown Product";
+            String productImage = product != null ? product.mainImage() : null;
             
             return new OrderDetailReponse(
                     d.getId(),
                     o.getId(),
                     d.getProductId(),
                     productName,
+                    productImage,
                     d.getQuantity(),
                     d.getUnitPrice(),
                     d.getUnitPrice().multiply(BigDecimal.valueOf(d.getQuantity())));

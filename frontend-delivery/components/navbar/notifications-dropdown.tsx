@@ -6,52 +6,36 @@ import {
   DropdownSection,
   DropdownTrigger,
 } from "@nextui-org/react";
-import React from "react";
-import { NotificationIcon } from "../icons/navbar/notificationicon";
+import { Bell } from "lucide-react";
+
+const navIconButtonClass =
+  "min-w-8 w-8 h-8 mr-3 text-default-500 data-[hover=true]:bg-default-100";
 
 export const NotificationsDropdown = () => {
   return (
     <Dropdown placement="bottom-end">
       <DropdownTrigger>
-        <Button 
+        <Button
           isIconOnly
+          size="sm"
           variant="light"
           aria-label="Notificaciones"
+          className={navIconButtonClass}
         >
-          <NotificationIcon />
+          <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
         </Button>
       </DropdownTrigger>
-      <DropdownMenu className="w-80" aria-label="Avatar Actions">
-        <DropdownSection title="Notificacions">
+      <DropdownMenu className="w-80" aria-label="Notificaciones">
+        <DropdownSection title="Notificaciones">
           <DropdownItem
             classNames={{
               base: "py-2",
-              title: "text-base font-semibold",
+              title: "text-sm font-medium",
             }}
             key="1"
-            description="Sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim."
+            description="No tienes notificaciones nuevas por ahora."
           >
-            📣 Edit your information
-          </DropdownItem>
-          <DropdownItem
-            key="2"
-            classNames={{
-              base: "py-2",
-              title: "text-base font-semibold",
-            }}
-            description="Sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim."
-          >
-            🚀 Say goodbye to paper receipts!
-          </DropdownItem>
-          <DropdownItem
-            key="3"
-            classNames={{
-              base: "py-2",
-              title: "text-base font-semibold",
-            }}
-            description="Sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim."
-          >
-            📣 Edit your information
+            Sin novedades
           </DropdownItem>
         </DropdownSection>
       </DropdownMenu>

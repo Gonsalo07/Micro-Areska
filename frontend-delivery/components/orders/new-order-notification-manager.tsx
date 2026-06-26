@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Button, Card, CardBody } from '@nextui-org/react'
+import { PrimaryButton } from '@/components/primary-button'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { orderDeliveriesApi } from '@/features/delivery/api/order-deliveries'
 import type { NewOrderNotification } from '@/hooks/use-new-order-notification'
@@ -193,15 +194,13 @@ const NewOrderCard = ({ order, taken, onAccept, onDismiss }: NewOrderCardProps) 
             >
               Ignorar
             </Button>
-            <Button
-              size="sm"
-              color="primary"
-              className="flex-1 font-bold"
+            <PrimaryButton
+              className="flex-1"
               onPress={handleAccept}
               isLoading={accepting}
             >
               ✅ Aceptar
-            </Button>
+            </PrimaryButton>
           </div>
         )}
       </CardBody>
