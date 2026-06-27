@@ -18,14 +18,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { InputIcon } from "@/components/auth/input-icon";
+import { authInputClassNames } from "@/components/auth/form-styles";
 import { PrimaryButton } from "@/components/primary-button";
 
-const inputClassNames = {
-  label: "text-sm font-semibold text-gray-700 dark:text-gray-300 pb-1.5",
-  inputWrapper:
-    "h-12 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all group-data-[focus=true]:bg-white dark:group-data-[focus=true]:bg-zinc-900 group-data-[focus=true]:border-primary shadow-sm",
-  input: "text-base",
-};
+const inputClassNames = authInputClassNames;
 
 export const Register = () => {
   const router = useRouter();
@@ -90,7 +86,7 @@ export const Register = () => {
 
             <div className="flex flex-col gap-5">
               <Input
-                variant="flat"
+                variant="bordered"
                 label="Nombre completo"
                 labelPlacement="outside"
                 placeholder="Juan Pérez"
@@ -104,7 +100,7 @@ export const Register = () => {
               />
 
               <Input
-                variant="flat"
+                variant="bordered"
                 label="Correo electrónico"
                 labelPlacement="outside"
                 placeholder="ejemplo@areska.com"
@@ -119,7 +115,7 @@ export const Register = () => {
               />
 
               <Input
-                variant="flat"
+                variant="bordered"
                 label="Contraseña"
                 labelPlacement="outside"
                 placeholder="••••••••"
@@ -134,7 +130,7 @@ export const Register = () => {
               />
 
               <Input
-                variant="flat"
+                variant="bordered"
                 label="Confirmar contraseña"
                 labelPlacement="outside"
                 placeholder="••••••••"

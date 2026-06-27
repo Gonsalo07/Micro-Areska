@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-import { ArrowLeft, MapPin, MessageCircle, Package, Truck } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  MapPin,
+  MessageCircle,
+  Package,
+  ShoppingBag,
+  Truck,
+} from 'lucide-react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -12,17 +21,85 @@ import { type OrderResponse, ordersApi } from '@public/api/orders'
 
 import { CustomerChat } from '@/components/tracking/customer-chat'
 import { DeliveryMap } from '@/components/tracking/delivery-map'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import {
   type DeliveryStatusUpdate,
   type OrderStatusUpdate,
   useOrderTracking,
 } from '@/hooks/use-delivery-tracking'
 import { getDeliveryStatusColor, getDeliveryStatusLabel } from '@/lib/constants/order-status'
+import { cn } from '@/lib/utils'
 import { useNotificationStore } from '@/stores/notification-store'
 
 const ACTIVE_STATUSES = ['ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'ARRIVED']
 const CHAT_ENABLED_STATUSES = ['OUT_FOR_DELIVERY', 'ARRIVED']
+
+const PROGRESS_STEPS = [
+  { key: 'ASSIGNED', label: 'Asignado' },
+  { key: 'ACCEPTED', label: 'Aceptado' },
+  { key: 'PICKED_UP', label: 'Recogido' },
+  { key: 'OUT_FOR_DELIVERY', label: 'En camino' },
+  { key: 'DELIVERED', label: 'Entregado' },
+] as const
+
+function getProgressPercent(status: string): number {
+  switch (status) {
+    case 'ASSIGNED':
+      return 20
+    case 'ACCEPTED':
+      return 40
+    case 'PICKED_UP':
+      return 60
+    case 'OUT_FOR_DELIVERY':
+      return 80
+    case 'ARRIVED':
+      return 95
+    case 'DELIVERED':
+      return 100
+    default:
+      return 0
+  }
+}
+
+function StatusBadge({ label, className }: { label: string; className: string }) {
+  return (
+    <Badge variant="outline" className={cn('rounded-full border-transparent', className)}>
+      {label}
+    </Badge>
+  )
+}
+
+function TrackingState({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: typeof Package
+  title: string
+  description: string
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center px-4 py-16 text-center">
+      <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted">
+        <Icon className="size-6 text-muted-foreground" />
+      </div>
+      <h2 className="text-xl font-semibold">{title}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+      {action && <div className="mt-6">{action}</div>}
+    </div>
+  )
+}
 
 export function TrackingPage() {
   const params = useParams()
@@ -53,7 +130,6 @@ export function TrackingPage() {
   const isChatEnabled = delivery ? CHAT_ENABLED_STATUSES.includes(delivery.status) : false
   const isTrackingActive = delivery ? ACTIVE_STATUSES.includes(delivery.status) : false
 
-  // Recibir actualizaciones en tiempo real (delivery-ws + order-ws)
   useOrderTracking({
     orderId: isTrackingActive ? orderId : undefined,
     enabled: isTrackingActive,
@@ -97,24 +173,13 @@ export function TrackingPage() {
     if (!orderId || !profile?.firebaseUid) return
 
     try {
-      // Obtener la orden
       const orderData = await ordersApi.getById(orderId)
-
-      // Nota: La validación de permisos ya se hace en el Gateway
-      // El Gateway valida el token de Firebase y el acceso a la orden
-      // if (orderData.firebaseUid !== profile.firebaseUid) {
-      //   setError('No tienes permiso para ver este pedido')
-      //   return
-      // }
-
       setOrder(orderData)
 
-      // Si es delivery, obtener el detalle
       if (orderData.pickupMethod === 'delivery') {
         const deliveryData = await deliveryApi.getByOrderId(orderId)
         setDelivery(deliveryData)
 
-        // Si ya no está activa, redirigir a mis compras
         if (deliveryData && !ACTIVE_STATUSES.includes(deliveryData.status)) {
           setTimeout(() => {
             router.push('/mis-compras')
@@ -131,191 +196,170 @@ export function TrackingPage() {
 
   useEffect(() => {
     fetchOrderAndDelivery()
-
-    // Polling cada 15 segundos para actualizar el estado
     const interval = setInterval(fetchOrderAndDelivery, 15000)
     return () => clearInterval(interval)
   }, [fetchOrderAndDelivery])
 
+  const backButton = (
+    <Button variant="outline" asChild>
+      <Link href="/mis-compras">
+        <ArrowLeft />
+        Volver a mis compras
+      </Link>
+    </Button>
+  )
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Cargando información...</p>
-        </div>
+      <div className="flex min-h-[50vh] items-center justify-center gap-3 text-muted-foreground">
+        <Spinner className="size-5" />
+        <span>Cargando seguimiento...</span>
       </div>
     )
   }
 
   if (error || !order) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <Package className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 dark:text-red-400 mb-4">{error || 'Pedido no encontrado'}</p>
-          <Button onClick={() => router.push('/mis-compras')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver a Mis Compras
-          </Button>
-        </div>
-      </div>
+      <TrackingState
+        icon={Package}
+        title="Pedido no encontrado"
+        description={error || 'No pudimos cargar este pedido.'}
+        action={backButton}
+      />
     )
   }
 
   if (!delivery) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Este pedido no tiene información de entrega
-          </p>
-          <Button onClick={() => router.push('/mis-compras')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver a Mis Compras
-          </Button>
-        </div>
-      </div>
+      <TrackingState
+        icon={Truck}
+        title="Sin información de entrega"
+        description="Este pedido no tiene datos de envío disponibles."
+        action={backButton}
+      />
     )
   }
 
+  const progress = getProgressPercent(delivery.status)
+  const currentStepIndex = PROGRESS_STEPS.findIndex((step) => step.key === delivery.status)
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => router.push('/mis-compras')} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver a Mis Compras
-          </Button>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <Button variant="ghost" asChild className="-ml-2 mb-6">
+        <Link href="/mis-compras">
+          <ArrowLeft />
+          Mis compras
+        </Link>
+      </Button>
 
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Package className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Pedido #{order.id}
-                  </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{order.orderDate}</p>
-                </div>
+      <Card className="mb-6 gap-0 py-0 shadow-sm">
+        <CardHeader className="border-b px-6 py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <Package className="size-5 text-muted-foreground" />
               </div>
+              <div>
+                <CardTitle className="text-2xl">Seguimiento · Pedido #{order.id}</CardTitle>
+                <CardDescription>{order.orderDate}</CardDescription>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              <StatusBadge
+                label={getDeliveryStatusLabel(delivery.status)}
+                className={getDeliveryStatusColor(delivery.status)}
+              />
+              <p className="text-lg font-semibold">S/ {order.total.toFixed(2)}</p>
+            </div>
+          </div>
+        </CardHeader>
 
-              <div className="flex flex-col items-end gap-2">
-                <span
-                  className={`px-4 py-2 rounded-full text-sm font-medium ${getDeliveryStatusColor(delivery.status)}`}
+        <CardContent className="px-6 py-5">
+          <div className="mb-3 hidden justify-between text-xs text-muted-foreground sm:flex">
+            {PROGRESS_STEPS.map((step) => (
+              <span key={step.key}>{step.label}</span>
+            ))}
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {PROGRESS_STEPS.map((step, index) => {
+              const isDone = currentStepIndex > index || delivery.status === 'DELIVERED'
+              const isCurrent = step.key === delivery.status
+              return (
+                <Badge
+                  key={step.key}
+                  variant={isCurrent ? 'default' : isDone ? 'secondary' : 'outline'}
+                  className="gap-1"
                 >
-                  {getDeliveryStatusLabel(delivery.status)}
-                </span>
-                <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  S/ {order.total.toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mt-6">
-              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
-                <span>Asignado</span>
-                <span>Aceptado</span>
-                <span>Recogido</span>
-                <span>En camino</span>
-                <span>Entregado</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                  style={{
-                    width:
-                      delivery.status === 'ASSIGNED'
-                        ? '20%'
-                        : delivery.status === 'ACCEPTED'
-                          ? '40%'
-                          : delivery.status === 'PICKED_UP'
-                            ? '60%'
-                            : delivery.status === 'OUT_FOR_DELIVERY'
-                              ? '80%'
-                              : delivery.status === 'ARRIVED'
-                                ? '95%'
-                                : delivery.status === 'DELIVERED'
-                                  ? '100%'
-                                  : '0%',
-                  }}
-                />
-              </div>
-            </div>
+                  {isDone && !isCurrent ? <Check className="size-3" /> : null}
+                  {step.label}
+                </Badge>
+              )
+            })}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Main content - Mapa y Chat */}
-        {/* Main content - Mapa y Chat */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-          {/* MAPA */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Ubicación en Tiempo Real
-                </h2>
-              </div>
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-stretch">
+        <Card className="gap-0 overflow-hidden py-0 shadow-sm lg:col-span-2">
+          <CardHeader className="border-b px-6 py-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MapPin className="size-4 text-muted-foreground" />
+              Ubicación en tiempo real
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <DeliveryMap delivery={delivery} />
+          </CardContent>
+        </Card>
 
-              <div className="flex-1">
-                <DeliveryMap delivery={delivery} />
-              </div>
-            </div>
-          </div>
+        <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden py-0 shadow-sm">
+          <CardHeader className="shrink-0 border-b px-6 py-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageCircle className="size-4 text-muted-foreground" />
+              Chat con repartidor
+            </CardTitle>
+            <CardDescription>
+              {isChatEnabled
+                ? 'Conversación activa mientras el pedido está en camino.'
+                : 'Se habilitará cuando el repartidor inicie el viaje.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+            <CustomerChat orderId={orderId} isEnabled={isChatEnabled} />
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* CHAT */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 h-full flex flex-col">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Chat con Repartidor
-                </h2>
-              </div>
-
-              <div className="flex-1">
-                <CustomerChat orderId={orderId} isEnabled={isChatEnabled} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Productos del pedido */}
-        <div className="mt-6 bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+      <Card className="mt-6 gap-0 py-0 shadow-sm">
+        <CardHeader className="border-b px-6 py-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShoppingBag className="size-4 text-muted-foreground" />
             Productos en este pedido
-          </h2>
-          <div className="space-y-3">
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-6 py-4">
+          <div className="divide-y divide-border rounded-lg border">
             {order.items.map((item) => (
               <div
                 key={item.id}
-                className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🛒</span>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {item.productName}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Cantidad: {item.quantity}
-                    </p>
-                  </div>
+                <div>
+                  <p className="font-medium">{item.productName}</p>
+                  <p className="text-muted-foreground">Cantidad: {item.quantity}</p>
                 </div>
-                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
-                  S/ {item.priceTotal.toFixed(2)}
-                </span>
+                <span className="shrink-0 font-semibold">S/ {item.priceTotal.toFixed(2)}</span>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

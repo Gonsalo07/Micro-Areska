@@ -144,18 +144,16 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
 
   if (!isChatEnabled) {
     return (
-      <div className="w-80 flex flex-col bg-default-50 rounded-lg border border-default-200">
-        <div className="p-4 border-b border-default-200 bg-default-100 rounded-t-lg">
-          <h3 className="font-semibold text-default-400">💬 Chat</h3>
+      <div className="flex h-full w-96 shrink-0 flex-col rounded-lg border border-default-200 bg-default-50">
+        <div className="shrink-0 rounded-t-lg border-b border-default-200 bg-default-100 p-4">
+          <h3 className="font-semibold text-default-400">Chat</h3>
         </div>
-        <div className="flex-1 flex items-center justify-center p-6 min-h-[400px]">
+        <div className="flex flex-1 items-center justify-center p-6">
           <div className="text-center">
-            <div className="text-4xl mb-3 opacity-50">💬</div>
-            <p className="text-default-400 text-sm">
-              {delivery?.orderId 
+            <p className="text-sm text-default-400">
+              {delivery?.orderId
                 ? "El chat se habilitará cuando inicies el viaje"
-                : "El chat estará disponible cuando tengas una orden activa"
-              }
+                : "El chat estará disponible cuando tengas una orden activa"}
             </p>
           </div>
         </div>
@@ -164,24 +162,22 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
   }
 
   return (
-    <div className="flex flex-col h-full bg-default-50 rounded-lg border border-default-200">
-    {/* Header */}
-    <div className="p-4 border-b border-default-200 bg-primary/5 rounded-t-lg">
+    <div className="flex h-full w-96 shrink-0 flex-col rounded-lg border border-default-200 bg-default-50">
+      <div className="shrink-0 rounded-t-lg border-b border-default-200 bg-primary/5 p-4">
         <div className="flex items-center gap-3">
           <Avatar
             src="https://i.pravatar.cc/150?u=customer123"
             size="md"
             className="h-10 w-10 shrink-0"
           />
-          <div className="pl-[3px]">
-            <h3 className="font-semibold text-sm">{delivery?.customerName || 'Cliente'}</h3>
+          <div>
+            <h3 className="text-sm font-semibold">{delivery?.customerName || "Cliente"}</h3>
             <span className="text-xs text-success">En línea</span>
           </div>
         </div>
       </div>
 
-       {/* Messages */}
-    <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="sm" label="Cargando mensajes..." />
@@ -223,7 +219,7 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
       </div>
 
      {/* Input */}
-    <div className="p-3 border-t border-default-200">
+      <div className="mt-auto shrink-0 border-t border-default-200 p-3">
         <div className="flex items-center gap-2">
           <Input
             placeholder="Escribe un mensaje..."
@@ -234,7 +230,7 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
             radius="lg"
             isDisabled={sending}
             classNames={{
-              base: "flex-1",
+              base: "min-w-0 flex-1",
               inputWrapper: "h-10 min-h-10 px-3",
               input: "text-sm",
             }}
