@@ -5,6 +5,20 @@
 
 <img width="1920" height="1280" alt="readme" src="https://github.com/user-attachments/assets/24aead36-1524-42c6-bb46-6826dc62444b" />
 
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/4730094d-1ea1-4a16-bfbf-e65f3610ea21" width="100%" alt="Vista Delivery"><br>
+      <strong>Vista Delivery</strong>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/2fc5abf4-a4dc-4ce1-8915-8f120fb317b5" width="100%" alt="Vista Cliente"><br>
+      <strong>Vista Cliente</strong>
+    </td>
+  </tr>
+</table>
+
+
 ## Requisitos previos
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
 - [Node.js + pnpm](https://pnpm.io/installation)
