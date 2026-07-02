@@ -143,11 +143,19 @@ export default function EnRutaPage() {
               La orden #{lastCompletedDelivery.orderId} fue entregada exitosamente.
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button color="default" variant="flat" as={Link} href="/historial">
+          <div className="flex w-full max-w-sm flex-col gap-3 px-6">
+            <Button
+              color="default"
+              variant="flat"
+              as={Link}
+              href="/historial"
+              size="lg"
+              radius="lg"
+              className="h-11 min-h-11 w-full px-6 font-semibold"
+            >
               Ver historial
             </Button>
-            <PrimaryButton as={Link} href="/pedidos">
+            <PrimaryButton as={Link} href="/pedidos" fullWidth className="px-6">
               Ver pedidos disponibles
             </PrimaryButton>
           </div>
@@ -170,7 +178,7 @@ export default function EnRutaPage() {
               Acepta un pedido disponible para comenzar a entregar.
             </p>
           </div>
-          <PrimaryButton as={Link} href="/pedidos">
+          <PrimaryButton as={Link} href="/pedidos" className="px-8">
             Ver pedidos disponibles
           </PrimaryButton>
         </div>

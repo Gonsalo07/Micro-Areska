@@ -29,15 +29,17 @@ export function CustomerChat({ orderId, isEnabled }: CustomerChatProps) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const container = messagesContainerRef.current
+    if (!container) return
+    container.scrollTo({ top: container.scrollHeight, behavior })
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, scrollToBottom])
 
   const mapChatMessage = (msg: ChatMessage): Message => ({
     id: msg.id.toString(),
@@ -169,7 +171,10 @@ export function CustomerChat({ orderId, isEnabled }: CustomerChatProps) {
 
   return (
     <div className="flex h-full min-h-[320px] flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-muted/20 p-4">
+      <div
+        ref={messagesContainerRef}
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-muted/20 p-4"
+      >
         {loading ? (
           <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
             <Spinner className="size-4" />
@@ -206,7 +211,6 @@ export function CustomerChat({ orderId, isEnabled }: CustomerChatProps) {
             </div>
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="mt-auto shrink-0 border-t bg-card p-3">

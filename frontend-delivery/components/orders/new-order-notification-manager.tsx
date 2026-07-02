@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Button, Card, CardBody } from '@nextui-org/react'
+import { Check, Lock, MapPin, Package, StickyNote, User } from 'lucide-react'
 import { PrimaryButton } from '@/components/primary-button'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { orderDeliveriesApi } from '@/features/delivery/api/order-deliveries'
@@ -131,10 +132,12 @@ const NewOrderCard = ({ order, taken, onAccept, onDismiss }: NewOrderCardProps) 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🛵</span>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              {taken ? <Lock className="size-4" /> : <Package className="size-4" />}
+            </div>
             <div>
               <p className="font-bold text-sm text-primary">
-                {taken ? '🔒 Orden tomada' : '¡Nueva orden!'}
+                {taken ? 'Orden tomada' : '¡Nueva orden!'}
               </p>
               <p className="text-xs text-default-500">Orden #{order.orderId}</p>
             </div>
@@ -160,18 +163,18 @@ const NewOrderCard = ({ order, taken, onAccept, onDismiss }: NewOrderCardProps) 
         {/* Detalles */}
         <div className="space-y-1 text-sm">
           <div className="flex items-start gap-2">
-            <span className="text-default-500 shrink-0">👤</span>
+            <User className="mt-0.5 size-4 shrink-0 text-default-500" />
             <span className="font-medium">{order.customerName}</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-default-500 shrink-0">📍</span>
+            <MapPin className="mt-0.5 size-4 shrink-0 text-default-500" />
             <span className="text-default-700 text-xs leading-tight">
               {order.destinationAddress}
             </span>
           </div>
           {order.customerNotes && (
             <div className="flex items-start gap-2">
-              <span className="text-default-500 shrink-0">📝</span>
+              <StickyNote className="mt-0.5 size-4 shrink-0 text-default-500" />
               <span className="text-default-500 text-xs italic">{order.customerNotes}</span>
             </div>
           )}
@@ -198,8 +201,9 @@ const NewOrderCard = ({ order, taken, onAccept, onDismiss }: NewOrderCardProps) 
               className="flex-1"
               onPress={handleAccept}
               isLoading={accepting}
+              startContent={!accepting ? <Check className="size-4" /> : undefined}
             >
-              ✅ Aceptar
+              Aceptar
             </PrimaryButton>
           </div>
         )}
