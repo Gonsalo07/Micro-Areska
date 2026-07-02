@@ -1,6 +1,15 @@
 # Areska — Plataforma E-Commerce con Microservicios
 
+
 **Areska** es una plataforma de comercio electrónico (periféricos gaming) construida con **arquitectura de microservicios**. Incluye dos frontends (tienda para clientes y app para repartidores), un API Gateway centralizado y comunicación en tiempo real entre servicios mediante **RabbitMQ** y **WebSockets STOMP**.
+
+<img width="1920" height="1280" alt="readme" src="https://github.com/user-attachments/assets/24aead36-1524-42c6-bb46-6826dc62444b" />
+
+## Requisitos previos
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
+- [Node.js + pnpm](https://pnpm.io/installation)
+- PowerShell (Windows)
+- Java 17+ y Maven (solo para Opción B y C)
 
 El núcleo del proyecto es la coordinación **Order Service ↔ Delivery Service**: cuando un cliente pide con envío a domicilio, la orden se persiste y se notifica de forma asíncrona al servicio de delivery; luego, el repartidor transmite su ubicación GPS en vivo y el cliente la sigue en un mapa en tiempo real.
 
