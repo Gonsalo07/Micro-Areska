@@ -1,14 +1,16 @@
 import {
   Button,
   Input,
-  Modal,
+  useDisclosure,
+} from "@nextui-org/react";
+import React from "react";
+import {
+  AppModal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  useDisclosure,
-} from "@nextui-org/react";
-import React from "react";
+} from "@/components/app-modal";
 
 export const AddUser = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -19,7 +21,7 @@ export const AddUser = () => {
         <Button onPress={onOpen} color="primary">
           Add User
         </Button>
-        <Modal
+        <AppModal
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           placement="top-center"
@@ -54,7 +56,7 @@ export const AddUser = () => {
               </>
             )}
           </ModalContent>
-        </Modal>
+        </AppModal>
       </>
     </div>
   );

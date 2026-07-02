@@ -28,8 +28,8 @@ export const SidebarItem = ({ icon, title, isActive, href = "" }: Props) => {
       <div
         className={clsx(
           isActive
-            ? "bg-primary-100/50 text-primary-600 font-bold [&_svg_path]:fill-primary-500 shadow-sm"
-            : "hover:bg-default-100 text-default-500 hover:text-default-900 font-medium",
+            ? "bg-primary-100 dark:bg-primary/20 text-primary-600 dark:text-primary-400 font-bold [&_svg_path]:fill-primary-500 shadow-sm"
+            : "hover:bg-default-200 dark:hover:bg-zinc-800/80 text-default-700 dark:text-default-300 hover:text-default-900 dark:hover:text-white font-medium",
           "flex gap-3 w-full min-h-[44px] h-full items-center px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98]"
         )}
       >

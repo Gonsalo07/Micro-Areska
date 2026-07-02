@@ -1,3 +1,19 @@
+-- =============================================================================
+-- SEED DATA - Areska
+-- =============================================================================
+-- La autenticación usa Firebase Auth (contraseñas NO están en esta BD).
+--
+-- REPARTIDORES (frontend-delivery, http://localhost:3001/login):
+--   Opción A: Registrarse en /login (recomendado; sincroniza con delivery_drivers).
+--   Opción B: Cuentas precargadas (requieren usuario en el mismo proyecto Firebase):
+--     - carlos.delivery@areska.com
+--     - maria.delivery@areska.com
+--
+-- TIENDA / ADMIN (frontend principal, http://localhost:3000):
+--   - jasonvila2007@gmail.com  (rol ADMIN en BD)
+--   - alejandro.vargas@mail.com, belen.quiroga@mail.com, etc.
+-- =============================================================================
+
 SET search_path TO public;
 
 BEGIN;

@@ -4,27 +4,41 @@ import dynamic from "next/dynamic";
 import { Button, Card, CardBody, Chip, Spinner } from "@nextui-org/react";
 import Link from "next/link";
 import { CheckCircle2, Clock, Package, TrendingUp, Truck, XCircle } from "lucide-react";
+import { format, subDays } from "date-fns";
+import { useTheme } from "next-themes";
 import type { ApexOptions } from "apexcharts";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { orderDeliveriesApi } from "@/features/delivery/api/order-deliveries";
+import { ButtonStartIcon } from "@/components/button-start-icon";
+import { PrimaryButton } from "@/components/primary-button";
 import type { OrderDeliveryDetailResponse } from "@/lib/types/order";
 
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-// Helpers
-function getLast7Days(): string[] {
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
+function toLocalDateKey(value?: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.includes("T") ? value : `${value}T12:00:00`;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.split("T")[0] ?? null;
   }
-  return days;
+  return format(parsed, "yyyy-MM-dd");
+}
+
+function getLast7Days(): string[] {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, index) =>
+    format(subDays(today, 6 - index), "yyyy-MM-dd")
+  );
 }
 
 function getShortDayLabel(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
+  const d = new Date(`${dateStr}T12:00:00`);
   return d.toLocaleDateString("es-PE", { weekday: "short" });
+}
+
+function getDeliveryDateKey(delivery: OrderDeliveryDetailResponse): string | null {
+  return toLocalDateKey(delivery.deliveredAt ?? delivery.updatedAt);
 }
 
 function getStatusChipProps(status: string): { color: "success" | "danger" | "warning" | "primary" | "default"; label: string } {
@@ -41,6 +55,14 @@ function getStatusChipProps(status: string): { color: "success" | "danger" | "wa
   return map[status] ?? { color: "default", label: status };
 }
 
+const flatChipLightBg: Record<string, string> = {
+  success: "!bg-success/10",
+  warning: "!bg-warning/10",
+  danger: "!bg-danger/10",
+  primary: "!bg-primary/10",
+  default: "!bg-default/10",
+};
+
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" });
@@ -48,8 +70,10 @@ function formatDate(dateStr?: string | null): string {
 
 export const Content = () => {
   const { driver, loading: authLoading } = useAuthStore();
+  const { resolvedTheme } = useTheme();
   const [deliveries, setDeliveries] = useState<OrderDeliveryDetailResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chartMounted, setChartMounted] = useState(false);
 
   const fetchDeliveries = useCallback(async () => {
     if (!driver?.id) {
@@ -71,6 +95,10 @@ export const Content = () => {
     fetchDeliveries();
   }, [authLoading, fetchDeliveries]);
 
+  useEffect(() => {
+    setChartMounted(true);
+  }, []);
+
   // ─── Stats derivados ───────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const delivered   = deliveries.filter((d) => d.status === "DELIVERED");
@@ -81,13 +109,12 @@ export const Content = () => {
 
     const last7 = getLast7Days();
     const thisWeek = delivered.filter((d) => {
-      const date = (d.deliveredAt ?? d.updatedAt ?? "").split("T")[0];
-      return last7.includes(date);
+      const date = getDeliveryDateKey(d);
+      return date != null && last7.includes(date);
     }).length;
 
-    // Datos para el gráfico: entregas por día en últimos 7 días
-    const chartData = last7.map((day) =>
-      delivered.filter((d) => (d.deliveredAt ?? d.updatedAt ?? "").startsWith(day)).length
+    const chartData = last7.map(
+      (day) => delivered.filter((d) => getDeliveryDateKey(d) === day).length
     );
     const chartLabels = last7.map(getShortDayLabel);
 
@@ -100,17 +127,32 @@ export const Content = () => {
   }, [deliveries]);
 
   // ─── Chart options ─────────────────────────────────────────────────────────
-  const chartOptions: ApexOptions = {
-    chart: { type: "bar", toolbar: { show: false }, background: "transparent" },
-    plotOptions: { bar: { borderRadius: 6, columnWidth: "55%" } },
-    colors: ["#006FEE"],
-    dataLabels: { enabled: false },
-    xaxis: { categories: stats.chartLabels, labels: { style: { colors: "#9ca3af" } }, axisBorder: { show: false }, axisTicks: { show: false } },
-    yaxis: { labels: { style: { colors: "#9ca3af" } }, tickAmount: 3 },
-    grid: { borderColor: "#374151", strokeDashArray: 4 },
-    tooltip: { theme: "dark" },
-    theme: { mode: "dark" },
-  };
+  const isDark = resolvedTheme === "dark";
+  const chartOptions: ApexOptions = useMemo(() => {
+    const labelColor = isDark ? "#a1a1aa" : "#6b7280";
+    const gridColor = isDark ? "#3f3f46" : "#e5e7eb";
+
+    return {
+      chart: { type: "bar", toolbar: { show: false }, background: "transparent", fontFamily: "inherit" },
+      plotOptions: { bar: { borderRadius: 6, columnWidth: "55%" } },
+      colors: ["#006FEE"],
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: stats.chartLabels,
+        labels: { style: { colors: labelColor } },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: { style: { colors: labelColor } },
+        tickAmount: 3,
+        min: 0,
+        forceNiceScale: true,
+      },
+      grid: { borderColor: gridColor, strokeDashArray: 4 },
+      tooltip: { theme: isDark ? "dark" : "light" },
+    };
+  }, [isDark, stats.chartLabels]);
 
   if (loading || authLoading) {
     return (
@@ -131,13 +173,13 @@ export const Content = () => {
   return (
     <div className="h-full px-4 lg:px-8 py-6 max-w-[90rem] mx-auto w-full flex flex-col gap-6">
 
-      {/* Saludo */}
+      {/* Encabezado */}
       <div>
         <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-          Bienvenido, <span className="text-primary">{driver.fullName?.split(" ")[0]}</span> 👋
+          Panel de repartidor
         </h1>
         <p className="text-gray-500 dark:text-zinc-400 text-sm mt-1">
-          Aquí está tu resumen de actividad como repartidor.
+          Resumen de tu actividad y entregas recientes.
         </p>
       </div>
 
@@ -145,53 +187,61 @@ export const Content = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Completadas */}
         <Card className="border-none bg-white dark:bg-zinc-900 shadow-md rounded-2xl">
-          <CardBody className="flex flex-col gap-3 p-5">
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-              <CheckCircle2 size={22} className="text-green-600 dark:text-green-400" />
+          <CardBody className="relative flex min-h-[128px] flex-col justify-center overflow-hidden !px-6 !py-4">
+            <div className="relative z-10 flex flex-col gap-3.5">
+              <p className="text-4xl font-extrabold leading-none text-gray-900 dark:text-white">{stats.delivered}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400">Entregas completadas</p>
             </div>
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{stats.delivered}</p>
-              <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Entregas completadas</p>
-            </div>
+            <CheckCircle2
+              size={100}
+              strokeWidth={1.25}
+              className="pointer-events-none absolute -right-1 -top-1 text-green-600/15 dark:text-green-400/10"
+            />
           </CardBody>
         </Card>
 
         {/* Esta semana */}
         <Card className="border-none bg-white dark:bg-zinc-900 shadow-md rounded-2xl">
-          <CardBody className="flex flex-col gap-3 p-5">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <TrendingUp size={22} className="text-blue-600 dark:text-blue-400" />
+          <CardBody className="relative flex min-h-[128px] flex-col justify-center overflow-hidden !px-6 !py-4">
+            <div className="relative z-10 flex flex-col gap-3.5">
+              <p className="text-4xl font-extrabold leading-none text-gray-900 dark:text-white">{stats.thisWeek}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400">Esta semana</p>
             </div>
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{stats.thisWeek}</p>
-              <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Esta semana</p>
-            </div>
+            <TrendingUp
+              size={100}
+              strokeWidth={1.25}
+              className="pointer-events-none absolute -right-1 -top-1 text-blue-600/15 dark:text-blue-400/10"
+            />
           </CardBody>
         </Card>
 
         {/* Tasa de éxito */}
         <Card className="border-none bg-white dark:bg-zinc-900 shadow-md rounded-2xl">
-          <CardBody className="flex flex-col gap-3 p-5">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-              <TrendingUp size={22} className="text-amber-600 dark:text-amber-400" />
+          <CardBody className="relative flex min-h-[128px] flex-col justify-center overflow-hidden !px-6 !py-4">
+            <div className="relative z-10 flex flex-col gap-3.5">
+              <p className="text-4xl font-extrabold leading-none text-gray-900 dark:text-white">{stats.successRate}<span className="ml-1.5 text-xl font-bold text-gray-400">%</span></p>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400">Tasa de éxito</p>
             </div>
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{stats.successRate}<span className="text-lg font-bold text-gray-400">%</span></p>
-              <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Tasa de éxito</p>
-            </div>
+            <TrendingUp
+              size={100}
+              strokeWidth={1.25}
+              className="pointer-events-none absolute -right-1 -top-1 text-amber-600/15 dark:text-amber-400/10"
+            />
           </CardBody>
         </Card>
 
         {/* Canceladas */}
         <Card className="border-none bg-white dark:bg-zinc-900 shadow-md rounded-2xl">
-          <CardBody className="flex flex-col gap-3 p-5">
-            <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-              <XCircle size={22} className="text-red-600 dark:text-red-400" />
+          <CardBody className="relative flex min-h-[128px] flex-col justify-center overflow-hidden !px-6 !py-4">
+            <div className="relative z-10 flex flex-col gap-3.5">
+              <p className="text-4xl font-extrabold leading-none text-gray-900 dark:text-white">{stats.cancelled}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400">Canceladas</p>
             </div>
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{stats.cancelled}</p>
-              <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Canceladas</p>
-            </div>
+            <XCircle
+              size={100}
+              strokeWidth={1.25}
+              className="pointer-events-none absolute -right-1 -top-1 text-red-600/15 dark:text-red-400/10"
+            />
           </CardBody>
         </Card>
       </div>
@@ -208,12 +258,27 @@ export const Content = () => {
                 {stats.thisWeek} esta semana
               </Chip>
             </div>
-            <ApexChart
-              type="bar"
-              series={[{ name: "Entregas", data: stats.chartData }]}
-              options={chartOptions}
-              height={220}
-            />
+            {!chartMounted ? (
+              <div className="flex h-[220px] items-center justify-center text-sm text-default-400">
+                Cargando gráfico...
+              </div>
+            ) : stats.thisWeek === 0 ? (
+              <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-center text-default-400">
+                <TrendingUp size={32} className="opacity-40" />
+                <p className="text-sm font-medium">Sin entregas en los últimos 7 días</p>
+                <p className="text-xs text-default-300">
+                  Tienes {stats.delivered} entrega(s) completada(s) en tu historial.
+                </p>
+              </div>
+            ) : (
+              <ApexChart
+                type="bar"
+                series={[{ name: "Entregas", data: stats.chartData }]}
+                options={chartOptions}
+                height={220}
+                width="100%"
+              />
+            )}
           </CardBody>
         </Card>
 
@@ -242,22 +307,21 @@ export const Content = () => {
                   <div className={`w-2.5 h-2.5 rounded-full ${driver.isAvailable ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />
                   <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">Disponibilidad</span>
                 </div>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${driver.isAvailable ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-zinc-700 dark:text-zinc-400"}`}>
-                  {driver.isAvailable ? "DISPONIBLE" : "OCUPADO"}
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${driver.isAvailable ? "bg-green-500/10 text-green-700 dark:bg-green-500/10 dark:text-green-400" : "bg-gray-500/10 text-gray-500 dark:bg-zinc-500/10 dark:text-zinc-400"}`}>
+                  {driver.isAvailable ? "Disponible" : "Ocupado"}
                 </span>
               </div>
             </div>
 
-            <Button
+            <PrimaryButton
               as={Link}
               href="/pedidos"
-              color="primary"
-              size="md"
-              className="font-bold w-full mt-auto"
-              startContent={<Package size={18} />}
+              fullWidth
+              className="mt-auto"
+              startContent={<ButtonStartIcon icon={Package} size={18} />}
             >
               Ver pedidos
-            </Button>
+            </PrimaryButton>
           </CardBody>
         </Card>
       </div>
@@ -276,9 +340,9 @@ export const Content = () => {
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400 dark:text-zinc-500">
               <Clock size={40} />
               <p className="text-sm font-medium">Aún no tienes entregas registradas</p>
-              <Button as={Link} href="/pedidos" color="primary" size="sm" className="font-bold mt-2">
+              <PrimaryButton as={Link} href="/pedidos" className="mt-2 px-10">
                 Buscar pedidos disponibles
-              </Button>
+              </PrimaryButton>
             </div>
           ) : (
             <div className="flex flex-col divide-y divide-gray-100 dark:divide-zinc-800">
@@ -300,7 +364,13 @@ export const Content = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Chip color={chipProps.color} variant="flat" size="sm" className="font-bold text-[10px] uppercase tracking-wide">
+                      <Chip
+                        color={chipProps.color}
+                        variant="flat"
+                        size="sm"
+                        className="font-bold text-[10px] tracking-wide"
+                        classNames={{ base: flatChipLightBg[chipProps.color] }}
+                      >
                         {chipProps.label}
                       </Chip>
                       <span className="text-[10px] text-gray-400 dark:text-zinc-500">

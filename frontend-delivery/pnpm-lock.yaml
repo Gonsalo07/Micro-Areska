@@ -26,6 +26,9 @@ importers:
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
       firebase:
         specifier: ^12.9.0
         version: 12.9.0
@@ -35,6 +38,9 @@ importers:
       framer-motion:
         specifier: ^10.16.0
         version: 10.18.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      lucide-react:
+        specifier: ^1.21.0
+        version: 1.21.0(react@18.2.0)
       next:
         specifier: ^14.0.4
         version: 14.2.35(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -53,6 +59,12 @@ importers:
       sockjs-client:
         specifier: ^1.6.1
         version: 1.6.1
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      swr:
+        specifier: ^2.4.2
+        version: 2.4.2(react@18.2.0)
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
@@ -61,7 +73,7 @@ importers:
         version: 1.7.1
       zustand:
         specifier: ^5.0.11
-        version: 5.0.11(@types/react@18.0.20)(react@18.2.0)
+        version: 5.0.11(@types/react@18.0.20)(react@18.2.0)(use-sync-external-store@1.6.0(react@18.2.0))
     devDependencies:
       '@types/node':
         specifier: 18.7.18
@@ -1581,6 +1593,9 @@ packages:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
 
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
+
   debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
     peerDependencies:
@@ -1619,6 +1634,10 @@ packages:
   define-properties@1.2.1:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
+
+  dequal@2.0.3:
+    resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
+    engines: {node: '>=6'}
 
   detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
@@ -2255,6 +2274,11 @@ packages:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
 
+  lucide-react@1.21.0:
+    resolution: {integrity: sha512-reEZMXq8Qdd5jg5XYkQ5TR1fB/GiQ7ih4vcrthYDtgjSDwh0i6/YLiGjsWsIwgN49gpAnd4J2elSNzncMEEUUQ==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -2697,6 +2721,12 @@ packages:
     resolution: {integrity: sha512-2g0tjOR+fRs0amxENLi/q5TiJTqY+WXFOzb5UwXndlK6TO3U/mirZznpx6w34HVMoc3g7cY24yC/ZMIYnDlfkw==}
     engines: {node: '>=12'}
 
+  sonner@2.0.7:
+    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -2807,6 +2837,11 @@ packages:
   svg.select.js@3.0.1:
     resolution: {integrity: sha512-h5IS/hKkuVCbKSieR9uQCj9w+zLHoPh+ce19bBYyqF53g6mnPB8sAtIbe1s9dh2S2fCmYX2xel1Ln3PJBbK4kw==}
     engines: {node: '>= 0.8.0'}
+
+  swr@2.4.2:
+    resolution: {integrity: sha512-ej644Y2bvkIajfR32KGeSSdBXQW+ScjGjkybZgSE7kFpk9eGnV44XY9FJylXi+W75pavSX1PVNB57W5EbhGIYw==}
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   tailwind-merge@1.14.0:
     resolution: {integrity: sha512-3mFKyCo/MBcgyOTlrY8T7odzZFx+w+qKSMAmdFzRvqBfLlSigU6TZnlFHK0lkMwj9Bj8OYU+9yW9lmGuS0QEnQ==}
@@ -2968,6 +3003,11 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  use-sync-external-store@1.6.0:
+    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -5291,6 +5331,8 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
+  date-fns@4.4.0: {}
+
   debug@3.2.7:
     dependencies:
       ms: 2.1.3
@@ -5318,6 +5360,8 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
+
+  dequal@2.0.3: {}
 
   detect-node-es@1.1.0: {}
 
@@ -6137,6 +6181,10 @@ snapshots:
     dependencies:
       js-tokens: 4.0.0
 
+  lucide-react@1.21.0(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+
   math-intrinsics@1.1.0: {}
 
   merge2@1.4.1: {}
@@ -6607,6 +6655,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  sonner@2.0.7(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+
   source-map-js@1.2.1: {}
 
   stable-hash@0.0.5: {}
@@ -6733,6 +6786,12 @@ snapshots:
   svg.select.js@3.0.1:
     dependencies:
       svg.js: 2.7.1
+
+  swr@2.4.2(react@18.2.0):
+    dependencies:
+      dequal: 2.0.3
+      react: 18.2.0
+      use-sync-external-store: 1.6.0(react@18.2.0)
 
   tailwind-merge@1.14.0: {}
 
@@ -6936,6 +6995,10 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.0.20
 
+  use-sync-external-store@1.6.0(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+
   util-deprecate@1.0.2: {}
 
   web-vitals@4.2.4: {}
@@ -7026,7 +7089,8 @@ snapshots:
       toposort: 2.0.2
       type-fest: 2.19.0
 
-  zustand@5.0.11(@types/react@18.0.20)(react@18.2.0):
+  zustand@5.0.11(@types/react@18.0.20)(react@18.2.0)(use-sync-external-store@1.6.0(react@18.2.0)):
     optionalDependencies:
       '@types/react': 18.0.20
       react: 18.2.0
+      use-sync-external-store: 1.6.0(react@18.2.0)

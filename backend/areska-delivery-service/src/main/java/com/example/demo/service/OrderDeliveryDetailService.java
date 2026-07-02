@@ -3,11 +3,15 @@ package com.example.demo.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.DeliveryStatusUpdate;
+import com.example.demo.dto.DriverHistoryPageResponse;
 import com.example.demo.dto.NewOrderNotification;
 import com.example.demo.dto.OrderDeliveryDetailRequest;
 import com.example.demo.dto.OrderDeliveryDetailResponse;
@@ -55,6 +59,30 @@ public class OrderDeliveryDetailService {
         return repository.findByDeliveryDriver_Id(driverId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public DriverHistoryPageResponse getDriverHistory(Integer driverId, String search, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        Page<OrderDeliveryDetail> result = repository.findDriverHistory(driverId, normalizedSearch, pageable);
+
+        long deliveredCount = repository.countByDeliveryDriver_IdAndStatus(
+                driverId, DeliveryStatus.DELIVERED.getValue());
+        long cancelledCount = repository.countByDeliveryDriver_IdAndStatus(
+                driverId, DeliveryStatus.CANCELLED.getValue());
+
+        return new DriverHistoryPageResponse(
+                result.getContent().stream().map(this::toResponse).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                deliveredCount,
+                cancelledCount
+        );
     }
 
     public List<OrderDeliveryDetailResponse> getActiveByDriverId(Integer driverId) {

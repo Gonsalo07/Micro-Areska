@@ -23,7 +23,7 @@ public class ProductServiceClient {
             }
             return Optional.empty();
         } catch (Exception e) {
-            throw new ResourceNotFoundException("Product not found with ID: " + id);
+            return Optional.empty();
         }
     }
 

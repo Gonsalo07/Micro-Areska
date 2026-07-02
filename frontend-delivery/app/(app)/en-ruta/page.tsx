@@ -1,18 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button, Chip, Spinner } from "@nextui-org/react";
+import { Button, Spinner } from "@nextui-org/react";
 import Link from "next/link";
+import { Car, Check, MapPin, Package, PartyPopper, ThumbsUp } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { DeliveryMap } from "@/components/en-ruta/delivery-map";
 import { DeliveryChat } from "@/components/en-ruta/delivery-chat";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { orderDeliveriesApi } from "@/features/delivery/api/order-deliveries";
+import { ButtonStartIcon } from "@/components/button-start-icon";
+import { PrimaryButton } from "@/components/primary-button";
 import type { OrderDeliveryDetailResponse, DeliveryStatus } from "@/lib/types/order";
 
 // Estados donde el chat debe estar habilitado
 const CHAT_ENABLED_STATUSES: DeliveryStatus[] = ["OUT_FOR_DELIVERY", "ARRIVED"] as DeliveryStatus[];
 // Estados donde se muestra el mapa
 const MAP_VISIBLE_STATUSES: DeliveryStatus[] = ["ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY", "ARRIVED"] as DeliveryStatus[];
+
+const actionBtnClass = "h-10 min-h-10 shrink-0 px-4 font-semibold";
 
 export default function EnRutaPage() {
   // loading = true mientras Firebase Auth no ha resuelto (onAuthStateChanged pendiente)
@@ -110,16 +116,6 @@ export default function EnRutaPage() {
     }
   };
 
-  const getStatusLabel = (status: DeliveryStatus) => {
-    const labels: Record<string, { label: string; color: "warning" | "primary" | "secondary" | "success" }> = {
-      ACCEPTED: { label: "Aceptado", color: "primary" },
-      PICKED_UP: { label: "Recogido del local", color: "primary" },
-      OUT_FOR_DELIVERY: { label: "En camino", color: "secondary" },
-      ARRIVED: { label: "Llegó al destino", color: "success" },
-    };
-    return labels[status] || { label: status, color: "warning" as const };
-  };
-
   const getStatusStep = (status: string) => {
     const steps = ["ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY", "ARRIVED", "DELIVERED"];
     return steps.indexOf(status) + 1;
@@ -147,13 +143,21 @@ export default function EnRutaPage() {
               La orden #{lastCompletedDelivery.orderId} fue entregada exitosamente.
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button color="default" variant="flat" as={Link} href="/historial">
+          <div className="flex w-full max-w-sm flex-col gap-3 px-6">
+            <Button
+              color="default"
+              variant="flat"
+              as={Link}
+              href="/historial"
+              size="lg"
+              radius="lg"
+              className="h-11 min-h-11 w-full px-6 font-semibold"
+            >
               Ver historial
             </Button>
-            <Button color="primary" as={Link} href="/pedidos">
+            <PrimaryButton as={Link} href="/pedidos" fullWidth className="px-6">
               Ver pedidos disponibles
-            </Button>
+            </PrimaryButton>
           </div>
         </div>
       </div>
@@ -174,88 +178,114 @@ export default function EnRutaPage() {
               Acepta un pedido disponible para comenzar a entregar.
             </p>
           </div>
-          <Button color="primary" as={Link} href="/pedidos">
+          <PrimaryButton as={Link} href="/pedidos" className="px-8">
             Ver pedidos disponibles
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
     );
   }
 
-  const STEPS = [
-    { key: "ACCEPTED", label: "Aceptado", icon: "✅" },
-    { key: "PICKED_UP", label: "Recogido", icon: "📦" },
-    { key: "OUT_FOR_DELIVERY", label: "En camino", icon: "🚗" },
-    { key: "ARRIVED", label: "Llegó", icon: "📍" },
-    { key: "DELIVERED", label: "Entregado", icon: "🎉" },
+  const STEPS: { key: string; label: string; Icon: LucideIcon }[] = [
+    { key: "ACCEPTED", label: "Aceptado", Icon: ThumbsUp },
+    { key: "PICKED_UP", label: "Recogido", Icon: Package },
+    { key: "OUT_FOR_DELIVERY", label: "En camino", Icon: Car },
+    { key: "ARRIVED", label: "Llegó", Icon: MapPin },
+    { key: "DELIVERED", label: "Entregado", Icon: PartyPopper },
   ];
 
   const currentStep = getStatusStep(activeDelivery.status);
 
+  const progressSteps = (
+    <>
+      {STEPS.map((step, idx) => {
+        const stepNum = idx + 1;
+        const isDone = stepNum < currentStep;
+        const isCurrent = stepNum === currentStep;
+        return (
+          <div key={step.key} className="flex items-center">
+            <div className={`flex flex-col items-center gap-1 min-w-[60px] ${isCurrent || isDone ? "opacity-100" : "opacity-30"}`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center
+                  ${isCurrent ? "bg-primary text-white" : isDone ? "bg-success text-white" : "bg-default-200 text-default-500"}`}
+              >
+                {isDone ? (
+                  <Check size={15} strokeWidth={2.5} />
+                ) : (
+                  <step.Icon size={15} strokeWidth={1.75} />
+                )}
+              </div>
+              <span
+                className={`text-[10px] text-center leading-tight
+                  ${isCurrent ? "text-primary font-semibold" : isDone ? "text-success" : "text-default-400"}`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {idx < STEPS.length - 1 && (
+              <div className={`h-0.5 w-4 mx-1 mb-4 rounded ${stepNum < currentStep ? "bg-success" : "bg-default-200"}`} />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+
+  const actionButton = (
+    <>
+      {activeDelivery.status === "ACCEPTED" && (
+        <Button color="secondary" size="md" startContent={<ButtonStartIcon icon={Package} size={15} />} onPress={handlePickedUp} isLoading={updating} className={actionBtnClass}>
+          Pedido recogido
+        </Button>
+      )}
+      {activeDelivery.status === "PICKED_UP" && (
+        <PrimaryButton startContent={<ButtonStartIcon icon={Car} size={15} />} onPress={handleStartDelivery} isLoading={updating} className="shrink-0 px-4">
+          Iniciar viaje
+        </PrimaryButton>
+      )}
+      {activeDelivery.status === "OUT_FOR_DELIVERY" && (
+        <PrimaryButton startContent={<ButtonStartIcon icon={MapPin} size={15} />} onPress={handleMarkArrived} isLoading={updating} className="shrink-0 px-4">
+          He llegado al destino
+        </PrimaryButton>
+      )}
+      {activeDelivery.status === "ARRIVED" && (
+        <Button color="success" size="md" startContent={<ButtonStartIcon icon={Check} size={15} />} onPress={handleMarkDelivered} isLoading={updating} className={actionBtnClass}>
+          Marcar entregado
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold">🛣️ En Ruta</h1>
-          <p className="text-default-500 text-sm">Orden #{activeDelivery.orderId} en curso</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Chip color={getStatusLabel(activeDelivery.status).color} variant="flat" size="sm">
-            {getStatusLabel(activeDelivery.status).label}
-          </Chip>
-
-          {activeDelivery.status === "ACCEPTED" && (
-            <Button color="secondary" size="sm" startContent="📦" onClick={handlePickedUp} isLoading={updating} className="font-semibold">
-              Pedido recogido
-            </Button>
-          )}
-          {activeDelivery.status === "PICKED_UP" && (
-            <Button color="primary" size="sm" startContent="🚗" onClick={handleStartDelivery} isLoading={updating} className="font-semibold">
-              Iniciar viaje
-            </Button>
-          )}
-          {activeDelivery.status === "OUT_FOR_DELIVERY" && (
-            <Button color="warning" size="sm" startContent="📍" onClick={handleMarkArrived} isLoading={updating} className="font-semibold">
-              He llegado al destino
-            </Button>
-          )}
-          {activeDelivery.status === "ARRIVED" && (
-            <Button color="success" size="sm" startContent="✅" onClick={handleMarkDelivered} isLoading={updating} className="font-semibold">
-              Marcar entregado
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Barra de progreso */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {STEPS.map((step, idx) => {
-          const stepNum = idx + 1;
-          const isDone = stepNum < currentStep;
-          const isCurrent = stepNum === currentStep;
-          return (
-            <div key={step.key} className="flex items-center">
-              <div className={`flex flex-col items-center gap-1 min-w-[60px] ${isCurrent || isDone ? "opacity-100" : "opacity-30"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                  ${isCurrent ? "bg-primary text-white" : isDone ? "bg-success text-white" : "bg-default-200 text-default-500"}`}>
-                  {isDone ? "✓" : step.icon}
-                </div>
-                <span className={`text-[10px] text-center leading-tight
-                  ${isCurrent ? "text-primary font-semibold" : isDone ? "text-success" : "text-default-400"}`}>
-                  {step.label}
-                </span>
-              </div>
-              {idx < STEPS.length - 1 && (
-                <div className={`h-0.5 w-4 mx-1 mb-4 rounded ${stepNum < currentStep ? "bg-success" : "bg-default-200"}`} />
-              )}
+      {/* Header + timeline */}
+      <div className="flex flex-col gap-3 flex-shrink-0">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 xl:gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 min-w-0 flex-1">
+            <div className="shrink-0">
+              <h1 className="text-2xl font-bold">En Ruta</h1>
+              <p className="text-default-500 text-sm">Orden #{activeDelivery.orderId} en curso</p>
             </div>
-          );
-        })}
+            <div className="hidden xl:flex items-center gap-1 overflow-x-auto flex-1 justify-start min-w-0">
+              {progressSteps}
+            </div>
+          </div>
+          <div className="hidden xl:flex items-center gap-2 shrink-0 self-center">
+            {actionButton}
+          </div>
+        </div>
+
+        {/* Timeline móvil / tablet + acción a la derecha */}
+        <div className="xl:hidden flex items-center gap-3 pb-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+            {progressSteps}
+          </div>
+          <div className="shrink-0">{actionButton}</div>
+        </div>
       </div>
 
       {/* Mapa y Chat — solo visibles en los estados correctos */}
-      <div className="flex gap-4 overflow-hidden" style={{ height: 'calc(100vh - 210px)' }}>
+      <div className="flex gap-4 overflow-hidden flex-1 min-h-0 xl:[height:calc(100vh-160px)] [height:calc(100vh-210px)]">
         {isMapVisible ? (
           <>
             <DeliveryMap delivery={activeDelivery} />

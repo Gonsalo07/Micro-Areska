@@ -1,30 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chip, Button, Switch } from "@nextui-org/react";
-import type { OrderDeliveryDetailResponse, DeliveryStatus } from "@/lib/types/order";
+import { Button, Switch } from "@nextui-org/react";
+import type { OrderDeliveryDetailResponse } from "@/lib/types/order";
 import { useDeliveryLocationSender } from "@/hooks/use-delivery-location-sender";
+import {
+  getDirectionsStatusHint,
+  getGoogleMapsApiKey,
+  getGoogleMapsApiKeySource,
+  logMapsConfig,
+  logMapsError,
+  logMapsInfo,
+  attachGoogleMapsErrorListener,
+  createDriverArrowIcon,
+  getDriverHeading,
+  MAPS_AUTH_CHECKLIST,
+  maskApiKey,
+} from "@/lib/google-maps";
 
 declare global {
   interface Window {
     google: any;
+    gm_authFailure?: () => void;
   }
 }
 
 interface DeliveryMapProps {
   delivery?: OrderDeliveryDetailResponse;
 }
-
-const STATUS_CONFIG: Record<DeliveryStatus, { label: string; color: "warning" | "primary" | "success" | "default" }> = {
-  PENDING_ASSIGNMENT: { label: "Pendiente", color: "default" },
-  ASSIGNED: { label: "Asignado", color: "default" },
-  ACCEPTED: { label: "Aceptado", color: "primary" },
-  PICKED_UP: { label: "Recogido", color: "primary" },
-  OUT_FOR_DELIVERY: { label: "En camino", color: "warning" },
-  ARRIVED: { label: "En destino", color: "success" },
-  DELIVERED: { label: "Entregado", color: "success" },
-  CANCELLED: { label: "Cancelado", color: "default" },
-};
 
 export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -38,6 +41,7 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
   const hasInitialFitRef = useRef<boolean>(false);
   const [distance, setDistance] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
+  const [mapError, setMapError] = useState<string | null>(null);
   
   // Guardar última ubicación pendiente para reenviar cuando conecte
   const pendingLocationRef = useRef<{lat: number, lng: number, distance: string, duration: string} | null>(null);
@@ -101,34 +105,105 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
     }
 
     console.log("🗺️ Inicializando mapa por primera vez");
+    logMapsConfig();
 
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    
+    const apiKey = getGoogleMapsApiKey();
+    const keySource = getGoogleMapsApiKeySource();
+
     if (!apiKey) {
-      console.warn("Google Maps API key no configurada");
+      const message =
+        "No hay API key. Define NEXT_PUBLIC_GOOGLE_MAPS_API_KEY o NEXT_PUBLIC_FIREBASE_API_KEY en .env.local";
+      logMapsError(message);
+      setMapError(message);
       return;
     }
 
-    // Cargar Google Maps script dinámicamente (solo si no existe)
-    const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
-    
-    if (!window.google && !existingScript) {
+    logMapsInfo("Cargando script de Maps", {
+      keySource,
+      keyPreview: maskApiKey(apiKey),
+    });
+
+    const reportMapFailure = (reason: string, details?: Record<string, unknown>) => {
+      logMapsError(reason, details);
+      setMapError(
+        `${reason}. Revisa la consola del navegador (filtro [GoogleMaps]) y habilita: ${MAPS_AUTH_CHECKLIST.slice(0, 3).join(", ")}.`
+      );
+    };
+
+    window.gm_authFailure = () => {
+      reportMapFailure("Google rechazó la API key (gm_authFailure)", {
+        keySource,
+        keyPreview: maskApiKey(apiKey),
+        origin: window.location.origin,
+        checklist: MAPS_AUTH_CHECKLIST,
+        tip:
+          keySource === "FIREBASE"
+            ? "Crea NEXT_PUBLIC_GOOGLE_MAPS_API_KEY con una key dedicada a Maps (no uses solo la de Firebase)."
+            : undefined,
+      });
+    };
+
+    const detachMapsErrorListener = attachGoogleMapsErrorListener((code, hint, raw) => {
+      logMapsError("Error runtime de Google Maps", { code, hint, raw, keySource });
+      setMapError(
+        code
+          ? `[${code}] ${hint}`
+          : "Error de Google Maps. Revisa consola con filtro [GoogleMaps]."
+      );
+    });
+
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[src*="maps.googleapis.com"]'
+    );
+
+    const loadScript = () => {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
       script.defer = true;
-      script.onload = initMap;
       script.id = "google-maps-script";
+      script.onload = () => {
+        logMapsInfo("Script de Maps cargado");
+        initMap();
+      };
+      script.onerror = () => {
+        reportMapFailure("No se pudo descargar maps.googleapis.com/maps/api/js", {
+          keySource,
+          scriptUrl: script.src.replace(apiKey, maskApiKey(apiKey)),
+        });
+      };
       document.head.appendChild(script);
-    } else if (window.google) {
+    };
+
+    if (window.google?.maps) {
       initMap();
+    } else if (existingScript) {
+      logMapsInfo("Script de Maps ya presente en el DOM, esperando carga");
+      existingScript.addEventListener("load", initMap, { once: true });
+      existingScript.addEventListener(
+        "error",
+        () => reportMapFailure("El script de Maps existente falló al cargar"),
+        { once: true }
+      );
+    } else {
+      loadScript();
     }
 
     function initMap() {
-      if (!mapRef.current || !window.google) return;
-      
-      console.log("🗺️ Creando instancia de mapa");
-      mapInitializedRef.current = true;
+      if (!mapRef.current) {
+        logMapsError("initMap abortado: contenedor del mapa no disponible");
+        return;
+      }
+
+      if (!window.google?.maps) {
+        reportMapFailure("window.google.maps no está disponible tras cargar el script");
+        return;
+      }
+
+      try {
+        logMapsInfo("Creando instancia de mapa");
+        mapInitializedRef.current = true;
+        setMapError(null);
       
       // ========== DEBUG - Ver datos del delivery ==========
       console.log("📦 Delivery data:", delivery);
@@ -187,6 +262,12 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
 
       // Iniciar seguimiento de ubicación
       startLocationTracking();
+      } catch (error) {
+        reportMapFailure("Error al crear el mapa", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        mapInitializedRef.current = false;
+      }
     }
 
     // Función para actualizar la ubicación del repartidor y trazar la ruta
@@ -201,23 +282,23 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
       // Coordenadas de destino
       const destinationLat = delivery?.destinationLat || 19.4326;
       const destinationLng = delivery?.destinationLng || -99.1332;
+      const destination = { lat: destinationLat, lng: destinationLng };
+      const heading = getDriverHeading(driverLocation, destination, routePathRef.current);
+      const driverIcon = createDriverArrowIcon(window.google.maps, heading);
 
       // Crear o actualizar marcador del repartidor
       if (driverMarkerRef.current) {
         driverMarkerRef.current.setPosition(driverLocation);
+        driverMarkerRef.current.setIcon(driverIcon);
+        driverMarkerRef.current.setZIndex(1000);
       } else {
         driverMarkerRef.current = new window.google.maps.Marker({
           position: driverLocation,
           map: mapInstanceRef.current,
           title: "Tu ubicación",
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#4F46E5",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 3,
-          },
+          icon: driverIcon,
+          zIndex: 1000,
+          optimized: false,
           animation: window.google.maps.Animation.DROP,
         });
         console.log("📍 Marcador del repartidor creado en:", driverLocation);
@@ -318,8 +399,13 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
                   }
                 }
               } else {
-                console.error("❌ Error al calcular ruta:", status);
-                console.error("💡 Verifica que Directions API esté habilitada en Google Cloud Console");
+                const hint = getDirectionsStatusHint(String(status));
+                logMapsError("Error al calcular ruta (Directions API)", {
+                  status,
+                  hint,
+                  origin: driverLocation,
+                  destination,
+                });
               }
             }
           );
@@ -423,7 +509,11 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
     initMap();
 
     return () => {
+      detachMapsErrorListener();
       console.log("🗺️ Limpiando mapa y recursos");
+      if (window.gm_authFailure) {
+        delete window.gm_authFailure;
+      }
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
@@ -468,34 +558,25 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
     );
   }
 
-  const statusConfig = STATUS_CONFIG[delivery.status] || { label: delivery.status, color: "default" as const };
-
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="bg-primary/10 p-3 rounded-t-lg border-b border-primary/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-primary">Orden #{delivery.orderId}</h3>
+    <div className="flex-1 flex flex-col overflow-hidden rounded-lg border border-divider bg-content1">
+      <div className="border-b border-divider p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-foreground">Orden #{delivery.orderId}</h3>
             <p className="text-sm text-default-500 truncate max-w-[250px]">
               {delivery.destinationAddress || "Sin dirección especificada"}
             </p>
           </div>
-          <div className="text-right">
-            <Chip size="sm" color={statusConfig.color} variant="flat">
-              {statusConfig.label}
-            </Chip>
-          </div>
+          {isConnected && (
+            <div className="flex shrink-0 items-center gap-2 text-xs">
+              <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+              <span className="font-medium text-success whitespace-nowrap">
+                Tracking en tiempo real activo
+              </span>
+            </div>
+          )}
         </div>
-        
-        {/* Indicador de WebSocket en tiempo real */}
-        {isConnected && (
-          <div className="flex items-center gap-2 mt-2 text-xs">
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-            <span className="text-success-600 font-medium">
-              Tracking en tiempo real activo
-            </span>
-          </div>
-        )}
         
         {/* Información de ruta */}
         {(distance || duration) && (
@@ -503,21 +584,21 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             {distance && (
               <div className="flex items-center gap-1">
                 <span className="text-default-400">📍</span>
-                <span className="font-medium text-primary">{distance}</span>
+                <span className="font-medium text-foreground">{distance}</span>
               </div>
             )}
             {duration && (
               <div className="flex items-center gap-1">
                 <span className="text-default-400">⏱️</span>
-                <span className="font-medium text-primary">{duration}</span>
+                <span className="font-medium text-foreground">{duration}</span>
               </div>
             )}
           </div>
         )}
         
         {delivery.customerNotes && (
-          <div className="mt-2 text-sm bg-warning/10 p-2 rounded">
-            <span className="font-medium">📝 Nota del cliente:</span> {delivery.customerNotes}
+          <div className="mt-2 rounded-lg bg-default-100 p-2 text-sm text-foreground">
+            <span className="font-medium">Nota del cliente:</span> {delivery.customerNotes}
           </div>
         )}
 
@@ -525,7 +606,7 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
         <div className="mt-2 flex items-center gap-2 flex-wrap">
           <Switch
             size="sm"
-            color="warning"
+            color="primary"
             isSelected={testMode}
             onValueChange={setTestMode}
           >
@@ -536,8 +617,8 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             <Button
               size="sm"
               variant="flat"
-              color="warning"
-              className="text-xs font-mono flex-1"
+              color="primary"
+              className="h-8 min-h-8 flex-1 px-3 text-xs font-mono"
               startContent="🚗"
               onPress={() => triggerSimMoveRef.current?.()}
             >
@@ -545,15 +626,22 @@ export const DeliveryMap = ({ delivery }: DeliveryMapProps) => {
             </Button>
           )}
 
-          <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-            isConnected ? 'bg-success/10 text-success-600' : 'bg-default-100 text-default-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-default-300'}`} />
-            {isConnected ? 'WS ON' : 'WS OFF'}
-          </div>
         </div>
       </div>
-      <div ref={mapRef} className="flex-1 min-h-0 rounded-b-lg" />
+      <div className="relative min-h-0 flex-1 bg-default-100">
+        <div ref={mapRef} className="absolute inset-0" />
+        {mapError && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-default-100/95 p-4">
+            <div className="max-w-md rounded-xl border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-300">
+              <p className="font-semibold">Mapa no disponible</p>
+              <p className="mt-2">{mapError}</p>
+              <p className="mt-3 text-xs opacity-80">
+                Abre DevTools → Console y filtra por <code className="font-mono">[GoogleMaps]</code>.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Table,
   TableHeader,
@@ -8,35 +8,83 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Chip,
   Spinner,
   Input,
   Button,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Image,
   Divider,
   Avatar,
 } from "@nextui-org/react";
-import { Eye } from "lucide-react";
+import {
+  Eye,
+  Search,
+  User,
+  Phone,
+  MapPin,
+  ShoppingBag,
+  Package,
+  ClipboardList,
+  Clock,
+  Pin,
+  CheckCircle2,
+  Store,
+  Bike,
+  CircleCheck,
+  XCircle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  AppModal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from "@/components/app-modal";
+import { ButtonStartIcon } from "@/components/button-start-icon";
+import { TablePagination } from "@/components/table-pagination";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { orderDeliveriesApi } from "@/features/delivery/api/order-deliveries";
 import { ordersApi } from "@/features/delivery/api/orders";
 import type { OrderDeliveryDetailResponse, OrderResponse } from "@/lib/types/order";
 
-const statusColorMap: Record<string, "success" | "warning" | "danger" | "primary" | "default"> = {
-  DELIVERED: "success",
-  CANCELLED: "danger",
+const searchInputClassNames = {
+  base: "h-11",
+  mainWrapper: "h-11",
+  inputWrapper:
+    "h-11 min-h-11 px-3 bg-default-100 hover:bg-default-200 group-data-[focus=true]:bg-default-100 border border-default-200/60 shadow-sm transition-colors",
+  input: "text-sm",
 };
+
+const modalSectionTitleClass =
+  "mb-3 flex items-center gap-2 font-semibold text-xs uppercase tracking-wider text-default-400";
+
+function ModalSectionTitle({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <h3 className={modalSectionTitleClass}>
+      <Icon size={14} strokeWidth={1.75} />
+      {children}
+    </h3>
+  );
+}
 
 export default function HistorialPage() {
   const { driver } = useAuthStore();
   const [deliveries, setDeliveries] = useState<OrderDeliveryDetailResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [deliveredCount, setDeliveredCount] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
 
   // Modal de detalle
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,34 +93,45 @@ export default function HistorialPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
-    const fetchDeliveries = async () => {
-      if (!driver?.id) {
-        setLoading(false);
-        return;
-      }
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-      try {
-        const allDeliveries = await orderDeliveriesApi.getByDriverId(driver.id);
-        const completedDeliveries = allDeliveries.filter(
-          (delivery) =>
-            delivery.status === "DELIVERED" ||
-            delivery.status === "CANCELLED"
-        );
-        completedDeliveries.sort(
-          (a, b) =>
-            new Date(b.deliveredAt || b.updatedAt).getTime() -
-            new Date(a.deliveredAt || a.updatedAt).getTime()
-        );
-        setDeliveries(completedDeliveries);
-      } catch (error) {
-        console.error("Error fetching deliveries:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch]);
 
-    fetchDeliveries();
-  }, [driver?.id]);
+  const fetchHistory = useCallback(async () => {
+    if (!driver?.id) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await orderDeliveriesApi.getDriverHistory(driver.id, {
+        page,
+        size: pageSize,
+        search: debouncedSearch || undefined,
+      });
+      setDeliveries(data.content);
+      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements);
+      setDeliveredCount(data.deliveredCount);
+      setCancelledCount(data.cancelledCount);
+    } catch (error) {
+      console.error("Error fetching deliveries:", error);
+      setDeliveries([]);
+      setTotalPages(0);
+      setTotalElements(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [driver?.id, page, pageSize, debouncedSearch]);
+
+  useEffect(() => {
+    void fetchHistory();
+  }, [fetchHistory]);
 
   const handleViewDetail = async (delivery: OrderDeliveryDetailResponse) => {
     setSelectedDelivery(delivery);
@@ -81,7 +140,9 @@ export default function HistorialPage() {
     setLoadingDetail(true);
     try {
       const order = await ordersApi.getById(delivery.orderId);
-      setOrderDetail(order);
+      if (order && typeof order === "object" && "id" in order) {
+        setOrderDetail(order);
+      }
     } catch (error) {
       console.error("Error fetching order detail:", error);
     } finally {
@@ -100,18 +161,7 @@ export default function HistorialPage() {
     });
   };
 
-  const filteredDeliveries = deliveries.filter((delivery) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      delivery.orderId.toString().includes(searchLower) ||
-      delivery.id.toString().includes(searchLower) ||
-      (delivery.customerName?.toLowerCase().includes(searchLower) || false) ||
-      formatDate(delivery.deliveredAt || delivery.updatedAt).toLowerCase().includes(searchLower) ||
-      (delivery.destinationAddress?.toLowerCase().includes(searchLower) || false)
-    );
-  });
-
-  if (loading) {
+  if (loading && deliveries.length === 0 && totalElements === 0 && !debouncedSearch) {
     return (
       <div className="h-full flex items-center justify-center">
         <Spinner size="lg" label="Cargando historial..." />
@@ -119,14 +169,14 @@ export default function HistorialPage() {
     );
   }
 
-  const deliveredCount = deliveries.filter((d) => d.status === "DELIVERED").length;
+  const hasAnyHistory = deliveredCount + cancelledCount > 0;
 
   return (
     <div className="h-full flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">📋 Historial de Entregas</h1>
+          <h1 className="text-2xl font-bold">Historial de Entregas</h1>
           <p className="text-default-500 text-sm">
             {deliveredCount} entregas completadas
           </p>
@@ -134,15 +184,20 @@ export default function HistorialPage() {
         <Input
           placeholder="Buscar por # de orden o cliente..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-72"
-          size="sm"
-          startContent={<span className="text-default-400">🔍</span>}
+          onValueChange={setSearchTerm}
+          className="w-72 shrink-0"
+          size="md"
+          radius="lg"
+          isClearable
+          classNames={searchInputClassNames}
+          startContent={
+            <Search className="h-[18px] w-[18px] shrink-0 text-default-400" strokeWidth={1.75} />
+          }
         />
       </div>
 
       {/* Tabla */}
-      {deliveries.length === 0 ? (
+      {!hasAnyHistory && !debouncedSearch ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="text-6xl mb-4">📦</div>
@@ -157,7 +212,26 @@ export default function HistorialPage() {
       ) : (
         <Table
           aria-label="Historial de entregas"
-          classNames={{ wrapper: "flex-1" }}
+          classNames={{
+            wrapper: "flex-1",
+            th: "text-sm text-foreground-500 font-semibold",
+          }}
+          bottomContent={
+            totalElements > 0 ? (
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                totalElements={totalElements}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(0);
+                }}
+              />
+            ) : null
+          }
+          bottomContentPlacement="outside"
         >
           <TableHeader>
             <TableColumn># Orden</TableColumn>
@@ -167,8 +241,16 @@ export default function HistorialPage() {
             <TableColumn>Estado</TableColumn>
             <TableColumn>Acciones</TableColumn>
           </TableHeader>
-          <TableBody emptyContent="No hay entregas que mostrar">
-            {filteredDeliveries.map((delivery) => (
+          <TableBody
+            emptyContent={
+              loading ? (
+                <Spinner size="sm" label="Cargando..." />
+              ) : (
+                "No hay entregas que mostrar"
+              )
+            }
+          >
+            {deliveries.map((delivery) => (
               <TableRow key={delivery.id}>
                 <TableCell>
                   <span className="font-semibold">#{delivery.orderId}</span>
@@ -202,24 +284,28 @@ export default function HistorialPage() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    color={statusColorMap[delivery.status] || "default"}
-                    size="sm"
-                    variant="flat"
+                  <span
+                    className={
+                      delivery.status === "DELIVERED"
+                        ? "text-sm font-medium text-success-600"
+                        : "text-sm font-medium text-danger-600"
+                    }
                   >
                     {delivery.status === "DELIVERED"
                       ? "Entregado ✓"
                       : delivery.status === "CANCELLED"
                       ? "Cancelado ✗"
                       : delivery.status}
-                  </Chip>
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Button
-                    size="sm"
-                    variant="flat"
+                    size="md"
+                    variant="light"
                     color="primary"
-                    startContent={<Eye size={14} />}
+                    radius="md"
+                    className="h-9 min-h-9 shrink-0 gap-2 px-4 text-sm font-semibold bg-transparent text-primary hover:bg-primary/10 data-[hover=true]:bg-primary/10"
+                    startContent={<ButtonStartIcon icon={Eye} size={15} />}
                     onPress={() => handleViewDetail(delivery)}
                   >
                     Ver detalle
@@ -232,29 +318,27 @@ export default function HistorialPage() {
       )}
 
       {/* Resumen */}
-      {deliveries.length > 0 && (
+      {hasAnyHistory && (
         <div className="flex gap-4 justify-end">
           <div className="bg-default-100 px-4 py-2 rounded-lg">
             <span className="text-default-500 text-sm">Total entregas: </span>
-            <span className="font-bold">{deliveries.length}</span>
+            <span className="font-bold">{deliveredCount + cancelledCount}</span>
           </div>
-          <div className="bg-success/10 px-4 py-2 rounded-lg">
+          <div className="bg-default-100 px-4 py-2 rounded-lg">
             <span className="text-success-600 text-sm">Completadas: </span>
             <span className="font-bold text-success-600">{deliveredCount}</span>
           </div>
-          {deliveries.length - deliveredCount > 0 && (
-            <div className="bg-danger/10 px-4 py-2 rounded-lg">
+          {cancelledCount > 0 && (
+            <div className="bg-default-100 px-4 py-2 rounded-lg">
               <span className="text-danger-600 text-sm">Canceladas: </span>
-              <span className="font-bold text-danger-600">
-                {deliveries.length - deliveredCount}
-              </span>
+              <span className="font-bold text-danger-600">{cancelledCount}</span>
             </div>
           )}
         </div>
       )}
 
       {/* ── Modal de Detalle ── */}
-      <Modal
+      <AppModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         size="2xl"
@@ -263,21 +347,24 @@ export default function HistorialPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-bold">
+              <ModalHeader className="flex flex-col gap-2 pt-1">
+                <div className="min-h-8" aria-hidden />
+                <div className="flex w-full items-center gap-3">
+                  <span className="text-lg font-bold min-w-0 truncate">
                     Detalle — Orden #{selectedDelivery?.orderId}
                   </span>
                   {selectedDelivery && (
-                    <Chip
-                      color={statusColorMap[selectedDelivery.status] || "default"}
-                      size="sm"
-                      variant="flat"
+                    <span
+                      className={`ml-auto shrink-0 text-sm font-medium ${
+                        selectedDelivery.status === "DELIVERED"
+                          ? "text-success-600"
+                          : "text-danger-600"
+                      }`}
                     >
                       {selectedDelivery.status === "DELIVERED"
                         ? "Entregado ✓"
                         : "Cancelado ✗"}
-                    </Chip>
+                    </span>
                   )}
                 </div>
               </ModalHeader>
@@ -287,43 +374,46 @@ export default function HistorialPage() {
                   <div className="flex flex-col gap-5">
                     {/* ── Información del cliente ── */}
                     <div className="bg-default-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-xs text-default-400 uppercase tracking-wider mb-3">
-                        👤 Información del cliente
-                      </h3>
-                      <div className="flex items-center gap-3">
-                        <Avatar
-                          name={selectedDelivery.customerName || "?"}
-                          size="md"
-                          color="primary"
-                          isBordered
-                        />
-                        <div>
-                          <p className="font-semibold text-base leading-tight">
-                            {selectedDelivery.customerName || "Sin nombre"}
-                          </p>
-                          <p className="text-sm text-default-500">
-                            📞&nbsp;
-                            {selectedDelivery.customerPhone || "Sin teléfono"}
-                          </p>
+                      <ModalSectionTitle icon={User}>
+                        Información del cliente
+                      </ModalSectionTitle>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-4">
+                          <Avatar
+                            name={selectedDelivery.customerName || "?"}
+                            size="md"
+                            color="primary"
+                            isBordered
+                            className="shrink-0"
+                          />
+                          <div className="flex flex-col gap-1.5">
+                            <p className="font-semibold text-base leading-tight">
+                              {selectedDelivery.customerName || "Sin nombre"}
+                            </p>
+                            <p className="flex items-center gap-1.5 text-sm text-default-500">
+                              <Phone size={14} className="shrink-0 text-default-400" strokeWidth={1.75} />
+                              {selectedDelivery.customerPhone || "Sin teléfono"}
+                            </p>
+                          </div>
                         </div>
+                        {selectedDelivery.destinationAddress && (
+                          <div className="ml-auto flex max-w-[50%] shrink-0 items-center justify-end gap-2 text-right text-sm">
+                            <MapPin size={14} className="shrink-0 text-default-400" strokeWidth={1.75} />
+                            <p className="text-default-700">
+                              {selectedDelivery.destinationAddress}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      {selectedDelivery.destinationAddress && (
-                        <div className="mt-3 flex items-start gap-2 text-sm">
-                          <span className="text-default-400 mt-0.5">📍</span>
-                          <p className="text-default-700">
-                            {selectedDelivery.destinationAddress}
-                          </p>
-                        </div>
-                      )}
                     </div>
 
                     <Divider />
 
                     {/* ── Productos del pedido ── */}
                     <div>
-                      <h3 className="font-semibold text-xs text-default-400 uppercase tracking-wider mb-3">
-                        🛍️ Productos del pedido
-                      </h3>
+                      <ModalSectionTitle icon={ShoppingBag}>
+                        Productos del pedido
+                      </ModalSectionTitle>
 
                       {loadingDetail ? (
                         <div className="flex items-center justify-center py-8">
@@ -346,8 +436,8 @@ export default function HistorialPage() {
                                     removeWrapper
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-2xl">
-                                    📦
+                                  <div className="flex h-full w-full items-center justify-center text-default-400">
+                                    <Package size={24} strokeWidth={1.75} />
                                   </div>
                                 )}
                               </div>
@@ -391,8 +481,8 @@ export default function HistorialPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-6 text-default-400">
-                          <span className="text-4xl">📋</span>
+                        <div className="flex flex-col items-center py-6 text-default-400">
+                          <ClipboardList size={36} strokeWidth={1.5} />
                           <p className="mt-2 text-sm">
                             No se encontraron productos
                           </p>
@@ -404,63 +494,68 @@ export default function HistorialPage() {
 
                     {/* ── Línea de tiempo ── */}
                     <div>
-                      <h3 className="font-semibold text-xs text-default-400 uppercase tracking-wider mb-3">
-                        🕐 Línea de tiempo
-                      </h3>
+                      <ModalSectionTitle icon={Clock}>
+                        Línea de tiempo
+                      </ModalSectionTitle>
                       <div className="flex flex-col gap-2 text-sm">
-                        {[
-                          {
-                            label: "Asignado",
-                            date: selectedDelivery.assignedAt,
-                            icon: "📌",
-                          },
-                          {
-                            label: "Aceptado",
-                            date: selectedDelivery.acceptedAt,
-                            icon: "✅",
-                          },
-                          {
-                            label: "Recogido",
-                            date: selectedDelivery.pickedUpAt,
-                            icon: "🏪",
-                          },
-                          {
-                            label: "En camino",
-                            date: selectedDelivery.outForDeliveryAt,
-                            icon: "🚴",
-                          },
-                          {
-                            label: "Llegó al destino",
-                            date: selectedDelivery.arrivedAt,
-                            icon: "📍",
-                          },
-                          {
-                            label: "Entregado",
-                            date: selectedDelivery.deliveredAt,
-                            icon: "🎉",
-                          },
-                          {
-                            label: "Cancelado",
-                            date: selectedDelivery.cancelledAt,
-                            icon: "❌",
-                          },
-                        ]
+                        {(
+                          [
+                            {
+                              label: "Asignado",
+                              date: selectedDelivery.assignedAt,
+                              icon: Pin,
+                            },
+                            {
+                              label: "Aceptado",
+                              date: selectedDelivery.acceptedAt,
+                              icon: CheckCircle2,
+                            },
+                            {
+                              label: "Recogido",
+                              date: selectedDelivery.pickedUpAt,
+                              icon: Store,
+                            },
+                            {
+                              label: "En camino",
+                              date: selectedDelivery.outForDeliveryAt,
+                              icon: Bike,
+                            },
+                            {
+                              label: "Llegó al destino",
+                              date: selectedDelivery.arrivedAt,
+                              icon: MapPin,
+                            },
+                            {
+                              label: "Entregado",
+                              date: selectedDelivery.deliveredAt,
+                              icon: CircleCheck,
+                            },
+                            {
+                              label: "Cancelado",
+                              date: selectedDelivery.cancelledAt,
+                              icon: XCircle,
+                            },
+                          ] as const
+                        )
                           .filter((step) => step.date)
-                          .map((step, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                              <span className="text-base w-6 text-center flex-shrink-0">
-                                {step.icon}
+                          .map((step) => {
+                            const StepIcon = step.icon;
+                            return (
+                            <div key={step.label} className="flex items-center gap-3">
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center text-default-500">
+                                <StepIcon size={16} strokeWidth={1.75} />
                               </span>
-                              <div className="flex-1 flex justify-between items-center bg-default-50 rounded-lg px-3 py-2">
+                              <div className="flex flex-1 items-center justify-between rounded-lg bg-default-50 px-3 py-2">
                                 <span className="font-medium text-default-700">
                                   {step.label}
                                 </span>
-                                <span className="text-default-400 text-xs">
+                                <span className="text-xs text-default-400">
                                   {formatDate(step.date)}
                                 </span>
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                       </div>
 
                       {selectedDelivery.cancellationReason && (
@@ -475,14 +570,20 @@ export default function HistorialPage() {
               </ModalBody>
 
               <ModalFooter>
-                <Button color="default" variant="flat" onPress={onClose}>
+                <Button
+                  variant="light"
+                  size="md"
+                  radius="lg"
+                  className="h-10 min-h-10 shrink-0 px-5"
+                  onPress={onClose}
+                >
                   Cerrar
                 </Button>
               </ModalFooter>
             </>
           )}
         </ModalContent>
-      </Modal>
+      </AppModal>
     </div>
   );
 }

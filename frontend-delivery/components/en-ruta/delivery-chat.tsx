@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Input, Avatar, Spinner } from "@nextui-org/react";
+import { Send } from "lucide-react";
 import { chatMessagesApi, type ChatMessage } from "@/features/delivery/api/chat-messages";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import type { OrderDeliveryDetailResponse } from "@/lib/types/order";
@@ -143,18 +144,16 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
 
   if (!isChatEnabled) {
     return (
-      <div className="w-80 flex flex-col bg-default-50 rounded-lg border border-default-200">
-        <div className="p-4 border-b border-default-200 bg-default-100 rounded-t-lg">
-          <h3 className="font-semibold text-default-400">💬 Chat</h3>
+      <div className="flex h-full w-96 shrink-0 flex-col rounded-lg border border-default-200 bg-default-50">
+        <div className="shrink-0 rounded-t-lg border-b border-default-200 bg-default-100 p-4">
+          <h3 className="font-semibold text-default-400">Chat</h3>
         </div>
-        <div className="flex-1 flex items-center justify-center p-6 min-h-[400px]">
+        <div className="flex flex-1 items-center justify-center p-6">
           <div className="text-center">
-            <div className="text-4xl mb-3 opacity-50">💬</div>
-            <p className="text-default-400 text-sm">
-              {delivery?.orderId 
+            <p className="text-sm text-default-400">
+              {delivery?.orderId
                 ? "El chat se habilitará cuando inicies el viaje"
-                : "El chat estará disponible cuando tengas una orden activa"
-              }
+                : "El chat estará disponible cuando tengas una orden activa"}
             </p>
           </div>
         </div>
@@ -163,24 +162,22 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
   }
 
   return (
-    <div className="flex flex-col h-full bg-default-50 rounded-lg border border-default-200">
-    {/* Header */}
-    <div className="p-4 border-b border-default-200 bg-primary/5 rounded-t-lg">
+    <div className="flex h-full w-96 shrink-0 flex-col rounded-lg border border-default-200 bg-default-50">
+      <div className="shrink-0 rounded-t-lg border-b border-default-200 bg-primary/5 p-4">
         <div className="flex items-center gap-3">
           <Avatar
             src="https://i.pravatar.cc/150?u=customer123"
-            size="sm"
-            className="ring-2 ring-success ring-offset-2"
+            size="md"
+            className="h-10 w-10 shrink-0"
           />
           <div>
-            <h3 className="font-semibold text-sm">{delivery?.customerName || 'Cliente'}</h3>
+            <h3 className="text-sm font-semibold">{delivery?.customerName || "Cliente"}</h3>
             <span className="text-xs text-success">En línea</span>
           </div>
         </div>
       </div>
 
-       {/* Messages */}
-    <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="sm" label="Cargando mensajes..." />
@@ -222,41 +219,33 @@ export const DeliveryChat = ({ isChatEnabled, delivery }: DeliveryChatProps) => 
       </div>
 
      {/* Input */}
-    <div className="p-3 border-t border-default-200">
-        <div className="flex gap-2">
+      <div className="mt-auto shrink-0 border-t border-default-200 p-3">
+        <div className="flex items-center gap-2">
           <Input
             placeholder="Escribe un mensaje..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            size="sm"
+            size="md"
+            radius="lg"
             isDisabled={sending}
             classNames={{
+              base: "min-w-0 flex-1",
+              inputWrapper: "h-10 min-h-10 px-3",
               input: "text-sm",
             }}
           />
           <Button
             isIconOnly
             color="primary"
-            size="sm"
-            onClick={handleSendMessage}
+            size="md"
+            radius="lg"
+            className="h-10 w-10 min-h-10 min-w-10 shrink-0"
+            onPress={handleSendMessage}
             isDisabled={!newMessage.trim() || sending}
             isLoading={sending}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-4 h-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-              />
-            </svg>
+            <Send size={16} strokeWidth={2} />
           </Button>
         </div>
       </div>

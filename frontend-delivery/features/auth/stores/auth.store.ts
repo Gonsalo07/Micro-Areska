@@ -6,6 +6,7 @@ import { persist } from 'zustand/middleware'
 
 import type { DeliveryDriverResponse } from '@/lib/types/delivery'
 
+import { deleteAuthCookie } from '@/actions/auth.action'
 import { deliveryDriverApi } from '@/features/delivery/api/delivery-driver'
 import { loginWithEmail, logoutFirebase, signupWithEmail } from '@/lib/firebase/auth'
 import { getAuthClient } from '@/lib/firebase/client'
@@ -101,11 +102,14 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: async () => {
+        await deleteAuthCookie()
+        useAuthStore.persist.clearStorage()
         await logoutFirebase()
         set({
           driver: null,
           firebaseUser: null,
           isAuthenticated: false,
+          loading: false,
         })
       },
 

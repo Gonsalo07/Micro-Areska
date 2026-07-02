@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { MapPin, Navigation, Truck } from 'lucide-react'
+import { MapPin, Navigation, Truck, User } from 'lucide-react'
 
 import type { OrderDeliveryDetail } from '@public/api/delivery'
 
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+
 import { type DeliveryLocationUpdate, useWebSocketTracking } from '@/hooks/use-websocket-tracking'
+import { getGoogleMapsApiKey } from '@/lib/google-maps'
 
 declare global {
   interface Window {
@@ -83,10 +88,12 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
 
     isInitializedRef.current = true
 
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+    const apiKey = getGoogleMapsApiKey()
 
     if (!apiKey) {
-      console.warn('Google Maps API key no configurada')
+      console.warn(
+        'Google Maps API key no configurada. Define NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en .env.local'
+      )
       return
     }
 
@@ -266,51 +273,43 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
 
   if (!delivery) {
     return (
-      <div className="w-full h-full min-h-[400px] bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center">
-        <div className="text-center text-gray-400">
-          <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>No hay información de entrega disponible</p>
+      <div className="flex min-h-[400px] items-center justify-center bg-muted/30">
+        <div className="text-center text-muted-foreground">
+          <MapPin className="mx-auto mb-3 size-12 opacity-50" />
+          <p className="text-sm">No hay información de entrega disponible</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full h-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-      {/* Indicador de conexión WebSocket */}
+    <div className="flex w-full flex-col overflow-hidden">
       {isConnected && (
-        <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800">
+        <div className="border-b bg-muted/40 px-4 py-2">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-medium text-green-700 dark:text-green-400">
+            <span className="size-2 animate-pulse rounded-full bg-green-500" />
+            <span className="text-xs font-medium text-muted-foreground">
               Tracking en tiempo real activo
             </span>
           </div>
         </div>
       )}
 
-      {/* Información de distancia y tiempo */}
       {distance && duration && (
-        <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
-          <div className="flex items-center justify-between">
+        <div className="border-b bg-muted/30 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Navigation className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                En camino
-              </span>
+              <Navigation className="size-4 text-muted-foreground" />
+              <span className="text-sm font-medium">En camino</span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Distancia</p>
-                <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                  {distance}
-                </p>
+            <div className="flex items-center gap-4 text-right">
+              <div>
+                <p className="text-xs text-muted-foreground">Distancia</p>
+                <p className="text-sm font-semibold">{distance}</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Tiempo aprox.</p>
-                <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                  {duration}
-                </p>
+              <div>
+                <p className="text-xs text-muted-foreground">Tiempo aprox.</p>
+                <p className="text-sm font-semibold">{duration}</p>
               </div>
             </div>
           </div>
@@ -322,35 +321,28 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         <div ref={mapRef} className="absolute inset-0" suppressHydrationWarning />
 
         {!currentDriverLocation && ['OUT_FOR_DELIVERY', 'ARRIVED'].includes(delivery.status) && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 pointer-events-none">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl max-w-sm mx-4 pointer-events-auto">
-              <div className="flex items-center gap-3 mb-2">
-                <Truck className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-bounce" />
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                  Esperando ubicación del repartidor
-                </h3>
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+            <Card className="pointer-events-auto mx-4 max-w-sm p-4 shadow-sm">
+              <div className="mb-2 flex items-center gap-3">
+                <Truck className="size-5 animate-bounce text-muted-foreground" />
+                <h3 className="font-semibold">Esperando ubicación del repartidor</h3>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 El mapa se actualizará automáticamente cuando el repartidor esté en movimiento.
               </p>
-            </div>
+            </Card>
           </div>
         )}
       </div>
 
-      {/* Información de la entrega */}
-      <div className="p-4 space-y-3 bg-white dark:bg-gray-900">
-        <div className="flex items-start gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-          <MapPin className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5" />
+      <div className="space-y-3 border-t p-4">
+        <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
+          <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-              Dirección de Entrega
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {delivery.destinationAddress}
-            </p>
+            <p className="mb-1 text-sm font-medium">Dirección de entrega</p>
+            <p className="text-sm text-muted-foreground">{delivery.destinationAddress}</p>
             {delivery.destinationReference && (
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Referencia: {delivery.destinationReference}
               </p>
             )}
@@ -358,18 +350,20 @@ export function DeliveryMap({ delivery }: DeliveryMapProps) {
         </div>
 
         {delivery.driverName && (
-          <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-            <div className="bg-indigo-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-semibold">
-              {delivery.driverName.charAt(0).toUpperCase()}
-            </div>
+          <div className="flex items-center gap-3 rounded-lg border p-3">
+            <Avatar className="size-10">
+              <AvatarFallback>
+                <User className="size-4" />
+              </AvatarFallback>
+            </Avatar>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {delivery.driverName}
-              </p>
+              <p className="text-sm font-medium">{delivery.driverName}</p>
               {delivery.driverPhone && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">{delivery.driverPhone}</p>
+                <p className="text-xs text-muted-foreground">{delivery.driverPhone}</p>
               )}
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Tu repartidor</p>
+              <Badge variant="secondary" className="mt-1">
+                Tu repartidor
+              </Badge>
             </div>
           </div>
         )}

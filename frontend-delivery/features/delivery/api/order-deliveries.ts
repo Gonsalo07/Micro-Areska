@@ -2,6 +2,7 @@ import { ApiClient } from '@/lib/api/client'
 import type { 
   OrderDeliveryDetailResponse, 
   OrderDeliveryDetailUpdateRequest,
+  DriverHistoryPageResponse,
   DeliveryStatus 
 } from '@/lib/types/order'
 
@@ -13,6 +14,24 @@ export const orderDeliveriesApi = {
    */
   async getByDriverId(driverId: number): Promise<OrderDeliveryDetailResponse[]> {
     return apiClient.get<OrderDeliveryDetailResponse[]>(`/order-deliveries/driver/${driverId}`)
+  },
+
+  /**
+   * Historial paginado del driver (entregadas / canceladas)
+   */
+  async getDriverHistory(
+    driverId: number,
+    params: { page?: number; size?: number; search?: string } = {}
+  ): Promise<DriverHistoryPageResponse> {
+    const query = new URLSearchParams()
+    query.set('page', String(params.page ?? 0))
+    query.set('size', String(params.size ?? 10))
+    if (params.search?.trim()) {
+      query.set('search', params.search.trim())
+    }
+    return apiClient.get<DriverHistoryPageResponse>(
+      `/order-deliveries/driver/${driverId}/history?${query.toString()}`
+    )
   },
 
   /**

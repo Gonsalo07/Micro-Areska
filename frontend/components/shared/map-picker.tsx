@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 
 import { AlertCircle, CheckCircle2, MapPin, Search } from 'lucide-react'
 
+import { getGoogleMapsApiKey } from '@/lib/google-maps'
+
 declare global {
   interface Window {
     google: any
@@ -71,7 +73,7 @@ export function MapPicker({ initialLat, initialLng, onLocationSelect }: MapPicke
   const [outsideLima, setOutsideLima] = useState(false)
 
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+    const apiKey = getGoogleMapsApiKey()
     if (!apiKey) {
       queueMicrotask(() => setIsLoading(false))
       return
