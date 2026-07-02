@@ -1,182 +1,259 @@
-# Areska - Guía de Inicio
+# Areska — Plataforma E-Commerce con Microservicios
 
-## Requisitos previos
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
-- [Node.js + pnpm](https://pnpm.io/installation)
-- PowerShell (Windows)
-- Java 17+ y Maven (solo para Opción B y C)
+**Areska** es una plataforma de comercio electrónico (periféricos gaming) construida con **arquitectura de microservicios**. Incluye dos frontends (tienda para clientes y app para repartidores), un API Gateway centralizado y comunicación en tiempo real entre servicios mediante **RabbitMQ** y **WebSockets STOMP**.
+
+El núcleo del proyecto es la coordinación **Order Service ↔ Delivery Service**: cuando un cliente pide con envío a domicilio, la orden se persiste y se notifica de forma asíncrona al servicio de delivery; luego, el repartidor transmite su ubicación GPS en vivo y el cliente la sigue en un mapa en tiempo real.
 
 ---
 
-# 🔧 BACKEND
+## Arquitectura general
 
-## 1. Configurar el entorno
+```
+┌─────────────────┐     ┌─────────────────┐
+│  frontend       │     │ frontend-delivery│
+│  (cliente)      │     │ (repartidor)     │
+│  :3000          │     │ :3001            │
+└────────┬────────┘     └────────┬─────────┘
+         │ REST + WebSocket       │ REST + WebSocket
+         └───────────┬────────────┘
+                     ▼
+         ┌───────────────────────┐
+         │   API Gateway :8090   │
+         │   Firebase Auth       │
+         └───────────┬───────────┘
+                     │ Eureka (service discovery)
+     ┌───────────────┼───────────────┐
+     ▼               ▼               ▼
+┌─────────┐   ┌───────────┐   ┌──────────┐
+│  User   │   │  Product  │   │ Payment  │
+│  :8081  │   │  :8082    │   │  :8083   │
+└─────────┘   └───────────┘   └──────────┘
+                     │
+              ┌──────┴──────┐
+              ▼             ▼
+        ┌──────────┐  ┌─────────────┐
+        │  Order   │  │  Delivery   │
+        │  :8084   │  │  :8085      │
+        └────┬─────┘  └──────▲──────┘
+             │               │
+             │  RabbitMQ     │
+             └──────────────►│
+                  delivery.orders.queue
 
-### 1.1 Crear el archivo `.env`
-Dentro de la carpeta `backend/`, copia el archivo de ejemplo:
+Infraestructura: PostgreSQL · RabbitMQ · Eureka · Config Server · Zipkin · Prometheus · Grafana
+```
+
+| Capa | Componentes |
+|------|-------------|
+| **Frontends** | `frontend` (tienda + admin) · `frontend-delivery` (app repartidor) |
+| **Gateway** | Punto de entrada único, autenticación Firebase, CORS, enrutamiento |
+| **Microservicios** | User · Product · Payment · Order · Delivery |
+| **Mensajería** | RabbitMQ — desacoplamiento Order → Delivery |
+| **Tiempo real** | WebSocket STOMP/SockJS — mapa GPS y estados de entrega |
+| **Observabilidad** | Zipkin (trazas) · Prometheus + Grafana (métricas) |
+
+---
+
+## Flujo estrella: Order → RabbitMQ → Delivery
+
+Cuando un cliente crea una orden con `pickup_method: "delivery"`, los dos servicios se coordinan sin acoplamiento directo:
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente (frontend)
+    participant GW as API Gateway
+    participant OS as Order Service
+    participant DB as PostgreSQL
+    participant RMQ as RabbitMQ
+    participant DS as Delivery Service
+    participant R as Repartidor (frontend-delivery)
+
+    C->>GW: POST /api/orders (envío a domicilio)
+    GW->>OS: Crear orden + validar usuario/producto (Feign)
+    OS->>DB: Guardar orden y detalles (transacción)
+    Note over OS: afterCommit()
+    OS->>RMQ: delivery.orders.queue (DeliveryRequest JSON)
+    RMQ->>DS: @RabbitListener
+    DS->>DB: Crear order_delivery_details (PENDING_ASSIGNMENT)
+    DS-->>R: WS /topic/orders/available (nueva orden)
+    R->>GW: POST /api/order-deliveries/{id}/accept/{driverId}
+```
+
+### Detalles técnicos
+
+| Elemento | Valor |
+|----------|-------|
+| **Cola** | `delivery.orders.queue` (durable) |
+| **Productor** | `areska-order-service` → `DeliveryProducer` |
+| **Consumidor** | `areska-delivery-service` → `DeliveryConsumer` |
+| **Formato** | JSON (`orderId`, `userId`, dirección, coordenadas, notas) |
+| **Garantía** | El mensaje se envía **después del commit** en BD para evitar inconsistencias |
+
+El **Order Service** gestiona el ciclo de negocio de la orden (`pending` → `confirmed` → `preparing` → `ready` → `completed`). El **Delivery Service** gestiona la logística por separado (`PENDING_ASSIGNMENT` → `ASSIGNED` → `ACCEPTED` → `OUT_FOR_DELIVERY` → `DELIVERED`).
+
+---
+
+## Flujo estrella: WebSocket y mapa en tiempo real
+
+El seguimiento GPS usa **STOMP sobre SockJS**, enrutado por el Gateway:
+
+| Ruta Gateway | Servicio | Endpoint backend |
+|--------------|----------|------------------|
+| `/api/ws/**` | Order Service | Chat y estado de orden |
+| `/api/delivery-ws/**` | Delivery Service | GPS, tracking y notificaciones a repartidores |
+
+### Mapa en vivo (cliente ↔ repartidor)
+
+```mermaid
+sequenceDiagram
+    participant R as Repartidor
+    participant DS as Delivery Service
+    participant C as Cliente
+
+    R->>DS: STOMP /app/delivery/location (lat, lng, orderId)
+    DS->>DS: Actualizar posición del repartidor en BD
+    DS-->>C: /topic/order/{orderId}/location
+    Note over C: Google Maps con marcador del repartidor
+```
+
+| Destino STOMP | Dirección | Propósito |
+|---------------|-----------|-----------|
+| `/app/delivery/location` | Repartidor → servidor | Envía coordenadas GPS |
+| `/topic/order/{orderId}/location` | Servidor → cliente | Actualiza el mapa en tiempo real |
+| `/topic/order/{orderId}/tracking` | Servidor → cliente | Hitos de la entrega |
+| `/topic/orders/available` | Servidor → repartidores | Nueva orden disponible |
+| `/topic/orders/taken/{deliveryId}` | Servidor → repartidores | Orden ya aceptada por otro |
+
+**Componentes clave:**
+- Repartidor: `frontend-delivery/hooks/use-delivery-location-sender.ts` + `delivery-map.tsx`
+- Cliente: `frontend/hooks/use-websocket-tracking.ts` + `components/tracking/delivery-map.tsx`
+- Backend: `DeliveryTrackingController` → `DeliveryTrackingService`
+
+---
+
+## Microservicios
+
+| Servicio | Puerto | Responsabilidad |
+|----------|--------|-----------------|
+| **Config Server** | 8888 | Configuración centralizada (`config-repo/`) |
+| **Eureka Server** | 8761 | Service discovery |
+| **User Service** | 8081 | Usuarios, roles, sync con Firebase |
+| **Product Service** | 8082 | Catálogo, categorías, stock |
+| **Payment Service** | 8083 | Pagos vinculados a órdenes |
+| **Order Service** | 8084 | Órdenes, chat, productor RabbitMQ |
+| **Delivery Service** | 8085 | Repartidores, entregas, consumidor RabbitMQ, WebSocket GPS |
+| **API Gateway** | 8090 | Entrada única, JWT Firebase, enrutamiento |
+
+### Comunicación entre servicios
+
+| Patrón | Uso |
+|--------|-----|
+| **REST vía Gateway** | Frontends → microservicios |
+| **OpenFeign + Eureka** | Order → User/Product; Payment → Order (validación síncrona) |
+| **RabbitMQ** | Order → Delivery (creación asíncrona de entrega) |
+| **WebSocket STOMP** | Estados de entrega, notificaciones a repartidores, GPS en mapa |
+| **PostgreSQL compartida** | Base de datos `areska` (separación lógica por tablas) |
+
+---
+
+## Stack tecnológico
+
+| Área | Tecnologías |
+|------|-------------|
+| **Backend** | Java 17, Spring Boot, Spring Cloud (Gateway, Config, Eureka), JPA, OpenFeign |
+| **Mensajería** | Spring AMQP, RabbitMQ 3 |
+| **Tiempo real** | Spring WebSocket, STOMP, SockJS |
+| **Auth** | Firebase Authentication (Admin SDK en gateway, Client SDK en frontends) |
+| **Frontend tienda** | Next.js 15, React 19, TypeScript, TanStack Query, Google Maps |
+| **Frontend delivery** | Next.js 14, React 18, NextUI, Google Maps, geolocalización |
+| **Observabilidad** | Zipkin, Prometheus, Grafana, Spring Actuator |
+| **Despliegue** | Docker Compose, Maven |
+
+---
+
+## Requisitos previos
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y en ejecución
+- [Node.js + pnpm](https://pnpm.io/installation)
+- PowerShell (Windows)
+- Java 17+ y Maven (solo para arranque local sin Docker)
+
+---
+
+## Inicio rápido
+
+### 1. Configurar backend
+
+**Variables de entorno** — dentro de `backend/`:
 ```powershell
 Copy-Item backend\.env.example backend\.env
 ```
-Abre `backend/.env` y ajusta las contraseñas si es necesario. Por defecto funciona tal como está.
 
-### 1.2 Configurar Firebase
-Descarga las credenciales de Firebase:
-> Firebase Console → Configuración del proyecto → Cuentas de servicio → **Generar nueva clave privada**
-
-Copia el archivo descargado aquí con ese nombre exacto:
+**Firebase** — descarga la clave de servicio desde Firebase Console → Cuentas de servicio y colócala en:
 ```
 backend/areska-gateway-service/firebase-service-account.json
 ```
 
----
-
-## 2. Levantar el backend
-
-### Opción A — Docker (recomendado)
-
-Un solo comando levanta toda la infraestructura y microservicios en el orden correcto:
+### 2. Levantar backend (Docker — recomendado)
 
 ```powershell
 cd backend
 docker compose up -d
 ```
 
-**Orden de arranque automático (via healthchecks):**
-
-| # | Servicio | Puerto | Depende de |
-|---|----------|--------|------------|
-| 1 | postgres | 5432 | — |
-| 1 | rabbitmq | 5672 / 15672 | — |
-| 1 | zipkin | 9411 | — |
-| 1 | zookeeper | 2181 | — |
-| 2 | kafka | 9092 | zookeeper |
-| 3 | config-server | 8888 | — |
-| 4 | eureka-server | 8761 | config-server |
-| 5 | user-service | 8081 | config-server, eureka-server, postgres |
-| 5 | product-service | 8082 | config-server, eureka-server, postgres |
-| 5 | payment-service | 8083 | config-server, eureka-server, postgres |
-| 6 | order-service | 8084 | config-server, eureka-server, postgres, rabbitmq |
-| 6 | delivery-service | 8085 | config-server, eureka-server, postgres, rabbitmq |
-| 7 | gateway-service | 8090 | config-server, eureka-server, user, product, order |
-| 8 | prometheus | 9090 | todos los servicios |
-| 9 | grafana | 3030 | prometheus |
-
-Espera ~3-4 minutos a que todos los servicios estén listos. Verifica el estado con:
+Espera 3–4 minutos y verifica:
 ```powershell
 docker compose ps
-```
-Para seguir los logs en tiempo real de un servicio específico:
-```powershell
 docker compose logs -f <nombre-contenedor>
 ```
 
----
+**Orden de arranque automático:**
 
-### Opción B — Script PowerShell
+| # | Servicio | Puerto | Depende de |
+|---|----------|--------|------------|
+| 1 | postgres, rabbitmq, zipkin, zookeeper | 5433, 5672, 9411, 2181 | — |
+| 2 | kafka | 9092 | zookeeper |
+| 3 | config-server | 8888 | — |
+| 4 | eureka-server | 8761 | config-server |
+| 5 | user, product, payment | 8081–8083 | config, eureka, postgres |
+| 6 | order, delivery | 8084–8085 | config, eureka, postgres, rabbitmq |
+| 7 | gateway-service | 8090 | config, eureka, user, product, order |
+| 8 | prometheus, grafana | 9090, 3030 | servicios activos |
 
-> Requiere: postgres y rabbitmq corriendo (Docker o nativos). El script levanta los servicios Spring Boot con Maven.
+### 3. Levantar frontends
 
-```powershell
-cd backend
-.\start-all-services.ps1
-```
-
-**Orden que ejecuta el script:**
-
-| # | Servicio | Puerto | Espera tras iniciar |
-|---|----------|--------|---------------------|
-| 1 | Config Server | 8888 | 35 s |
-| 2 | Eureka Server | 8761 | 30 s |
-| 3 | User Service | 8081 | 3 s |
-| 3 | Product Service | 8082 | 20 s |
-| 4 | Order Service | 8084 | 15 s |
-| 5 | Payment Service | 8083 | 5 s |
-| 6 | Delivery Service | 8085 | 5 s |
-| 7 | API Gateway | 8090 | — |
-
-> Cada servicio abre su propia ventana de PowerShell.
-
----
-
-### Opción C — Manual (terminal por terminal)
-
-> Requiere: postgres y rabbitmq corriendo (Docker o nativos).
-> Abre una terminal separada para cada servicio.
-
-**Paso 1 — Config Server** (espera hasta ver `Started` en los logs):
-```powershell
-cd backend/areska-config-server
-./mvnw spring-boot:run
-```
-
-**Paso 2 — Eureka Server** (espera hasta ver el dashboard en http://localhost:8761):
-```powershell
-cd backend/areska-eureka-server
-./mvnw spring-boot:run
-```
-
-**Paso 3 — Servicios base** (levantar en paralelo, en terminales separadas):
-```powershell
-# Terminal A
-cd backend/areska-user-service
-./mvnw spring-boot:run
-
-# Terminal B
-cd backend/areska-product-service
-./mvnw spring-boot:run
-
-# Terminal C
-cd backend/areska-payment-service
-./mvnw spring-boot:run
-```
-
-**Paso 4 — Servicios con RabbitMQ** (espera que el Paso 3 esté listo):
-```powershell
-# Terminal D
-cd backend/areska-order-service
-./mvnw spring-boot:run
-
-# Terminal E
-cd backend/areska-delivery-service
-./mvnw spring-boot:run
-```
-
-**Paso 5 — API Gateway** (último, espera que todos los servicios anteriores estén registrados en Eureka):
-```powershell
-cd backend/areska-gateway-service
-./mvnw spring-boot:run
-```
-
----
-
-# 🖥️ FRONTEND
-
-## 3. Levantar los frontends
-
-En dos terminales separadas:
-
-**Frontend principal** (puerto 3000):
+**Tienda (puerto 3000):**
 ```powershell
 cd frontend
 pnpm install
 pnpm dev
 ```
 
-**Frontend delivery** (puerto 3001):
+**App repartidor (puerto 3001):**
 ```powershell
 cd frontend-delivery
 pnpm install
 pnpm dev
 ```
 
+### Alternativas de arranque del backend
+
+**Script PowerShell** (requiere Postgres y RabbitMQ activos):
+```powershell
+cd backend
+.\start-all-services.ps1
+```
+
+**Manual** — levanta en terminales separadas: Config Server → Eureka → User/Product/Payment → Order/Delivery → Gateway. Ver sección de desarrollo local en el historial del repo si necesitas el detalle paso a paso.
+
 ---
 
-## 4. URLs de acceso
+## URLs de acceso
 
 | Servicio | URL | Credenciales |
 |----------|-----|--------------|
-| Frontend | http://localhost:3000 | — |
-| Frontend Delivery | http://localhost:3001 | — |
+| Frontend tienda | http://localhost:3000 | — |
+| Frontend delivery | http://localhost:3001 | — |
 | API Gateway | http://localhost:8090 | — |
 | Eureka Dashboard | http://localhost:8761 | — |
 | RabbitMQ Panel | http://localhost:15672 | guest / guest |
@@ -188,22 +265,39 @@ pnpm dev
 
 | Servicio | URL |
 |----------|-----|
-| User Service | http://localhost:8081/swagger-ui.html |
-| Product Service | http://localhost:8082/swagger-ui.html |
-| Payment Service | http://localhost:8083/swagger-ui.html |
-| Order Service | http://localhost:8084/swagger-ui.html |
-| Delivery Service | http://localhost:8085/swagger-ui.html |
+| User | http://localhost:8081/swagger-ui.html |
+| Product | http://localhost:8082/swagger-ui.html |
+| Payment | http://localhost:8083/swagger-ui.html |
+| Order | http://localhost:8084/swagger-ui.html |
+| Delivery | http://localhost:8085/swagger-ui.html |
 
 ---
 
-## 5. Detener todo
+## Detener servicios
 
 ```powershell
 cd backend
 docker compose down
 ```
 
-Borrar también los datos de la base de datos:
+Para eliminar también los datos de la base de datos:
 ```powershell
 docker compose down -v
 ```
+
+---
+
+## Estructura del repositorio
+
+```
+Micro-Areska/
+├── backend/          → ver backend/README.md
+├── frontend/         → ver frontend/README.md
+└── frontend-delivery/ → ver frontend-delivery/README.md
+```
+
+| Carpeta | README | Contenido |
+|---------|--------|-----------|
+| `backend/` | [backend/README.md](backend/README.md) | Microservicios, RabbitMQ, WebSocket, Docker, Gateway |
+| `frontend/` | [frontend/README.md](frontend/README.md) | Tienda, admin, mapa de seguimiento del cliente |
+| `frontend-delivery/` | [frontend-delivery/README.md](frontend-delivery/README.md) | App repartidor, envío GPS, notificaciones de órdenes |
